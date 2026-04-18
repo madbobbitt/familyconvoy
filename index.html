@@ -1098,22 +1098,137 @@ function findDiscardIdx(p, s) {
 
 // ── LOG RENDERING ──────────────────────────────────
 
-var LOG_TEMPLATES = {
-  played_distance: function(who, card, dist) { return who + " played " + card + " — " + dist + " miles total"; },
-  played_go: function(who) { return who + " played Go — hitting the road!"; },
-  played_remedy: function(who, card) { return who + " played " + card; },
-  played_hazard: function(who, card, tgt) { return who + " played " + card + " on " + tgt + "!"; },
-  played_safety: function(who, card) { return who + " played " + card + "!"; },
-  discarded: function(who, card) { return who + " discarded " + card; },
-  winner: function(who, dist) { return who + " made it to Wallyworld! (" + dist + " miles)"; },
-  coup_fourre: function(who, bonus) { return who + " — COUP FOURRÉ! +" + bonus + " miles!"; },
+// ═══════════════════════════════════════════════════
+// STRINGS / i18n
+// ═══════════════════════════════════════════════════
+
+var STRINGS = {
+  en: {
+    phase_draw:"DRAW", phase_play:"PLAY", phase_finish:"FINISH LINE", phase_coup:"COUP FOURRÉ",
+    turn_yours:"YOUR TURN", turn_waiting:"WAITING", turn_over:"RACE OVER", turn_driving:"driving...",
+    miles:"miles", cards:"cards",
+    badge_rolling:"rolling", badge_stopped:"stopped", badge_speed:"speed limit", badge_need_go:"need Go card",
+    miles_traveled:"Miles Traveled",
+    of_miles:"of {n} miles to Wallyworld",
+    draw_prompt:"Draw a card to hit the road!",
+    draw_pile:"Draw Pile", discard_pile:"Discard", pile_empty:"empty", pile_total:"{n} total",
+    btn_discard:"Discard", btn_new_race:"New Race", btn_how_to_play:"How to Play",
+    prompt_hazard:"🎯 Click a family to play {card} on them",
+    prompt_play:"Play {card}{miles}?", prompt_miles:" (+{n} miles)",
+    btn_ok:"OK", btn_cancel:"Cancel",
+    coup_title:"Coup Fourré! 🚨",
+    coup_body:"{attacker} played {hazard} on you — but you have {safety} in your hand!",
+    coup_prompt:"Counter it for +{bonus} bonus miles and take the next turn?",
+    btn_counter:"Counter It! 🛡️", btn_decline:"Decline",
+    splash_sub:"Race 700 miles to Wallyworld before the other family gets there first.",
+    splash_go_title:"🟢 Go Card", splash_go_body:"You need a Go card before you can play any distance cards.",
+    splash_speed_title:"🐌 Speed Limit", splash_speed_body:"Limits you to 50 miles per turn until you play End Speed Limit.",
+    splash_safety_title:"🛡️ Safeties", splash_safety_body:"Permanent protection. Play them any time — even during someone's attack (Coup Fourré).",
+    splash_hazard_title:"🚨 One Hazard", splash_hazard_body:"Only one hazard per family at a time. Spread the misery.",
+    btn_start:"Hit the Road!",
+    win_you:"🎉 WALLYWORLD!", win_them:"😭 They Beat You!",
+    win_you_sub:"You made it in {n} miles!",
+    win_them_sub:"{name} arrived first at {n} miles.",
+    btn_race_again:"Race Again",
+    rules_title:"How to Play",
+    rules_goal_h:"Goal",
+    rules_goal:"Be the first family to drive exactly <strong>700 miles</strong>. You play against the AI (the other family). Draw a card each turn, then play one or discard one.",
+    rules_cards_h:"Card Types",
+    rules_li_miles:"<strong>Mile Cards</strong> (25, 50, 75, 100, 200 mi) — Add miles to your trip. You must have a <em>Go</em> card active and no hazards to play miles. Max one 200-mile card per trip.",
+    rules_li_go:"<strong>Go</strong> — Starts your engine. Required before you can play mile cards.",
+    rules_li_hazards:"<strong>Hazards</strong> (Flat Tire, Out of Gas, Accident, Speed Limit, Stop) — Play these on your opponent to slow them down. They can't drive until they fix it.",
+    rules_li_remedies:"<strong>Remedies</strong> (Spare Tire, Gas, Repairs, End Limit, Go) — Fix a hazard on your own family. Go doubles as a remedy for Stop.",
+    rules_li_safeties:"<strong>Safety Cards</strong> (Puncture Proof, Extra Tank, Driving Ace, Right of Way) — Play anytime for permanent immunity against the matching hazard. Playing a safety also gives you a free extra turn.",
+    rules_coup_h:"Coup Fourré",
+    rules_coup:"If the AI plays a hazard on you and you have the matching Safety card in hand, you can immediately play it as a <em>Coup Fourré</em> — canceling the hazard and stealing the turn.",
+    rules_win_h:"Winning",
+    rules_win:"First to hit exactly 700 miles wins. You can't overshoot — a mile card that would push you past 700 is unplayable. Plan ahead!",
+    rules_got_it:"Got It",
+    log_played_distance:"{who} played {card} — {dist} miles total",
+    log_played_go:"{who} played Go — hitting the road!",
+    log_played_remedy:"{who} played {card}",
+    log_played_hazard:"{who} played {card} on {tgt}!",
+    log_played_safety:"{who} played {card}!",
+    log_discarded:"{who} discarded {card}",
+    log_winner:"{who} made it to Wallyworld! ({dist} miles)",
+    log_coup_fourre:"{who} — COUP FOURRÉ! +{bonus} miles!",
+    log_draw_first:"Draw a card first!",
+  },
+  th: {
+    phase_draw:"จั่วไพ่", phase_play:"เล่น", phase_finish:"เส้นชัย", phase_coup:"คูป ฟูเร่",
+    turn_yours:"เทิร์นของคุณ", turn_waiting:"รออยู่", turn_over:"จบการแข่ง", turn_driving:"กำลังขับ...",
+    miles:"ไมล์", cards:"ใบ",
+    badge_rolling:"กำลังวิ่ง", badge_stopped:"หยุด", badge_speed:"จำกัดความเร็ว", badge_need_go:"ต้องการการ์ด Go",
+    miles_traveled:"ระยะทางที่ขับ",
+    of_miles:"จาก {n} ไมล์ถึงวอลลี่เวิลด์",
+    draw_prompt:"จั่วการ์ดเพื่อออกเดินทาง!",
+    draw_pile:"กองจั่ว", discard_pile:"กองทิ้ง", pile_empty:"ว่าง", pile_total:"รวม {n} ใบ",
+    btn_discard:"ทิ้งการ์ด", btn_new_race:"เริ่มใหม่", btn_how_to_play:"วิธีเล่น",
+    prompt_hazard:"🎯 คลิกครอบครัวเพื่อเล่น {card} ใส่พวกเขา",
+    prompt_play:"เล่น {card}{miles}?", prompt_miles:" (+{n} ไมล์)",
+    btn_ok:"ตกลง", btn_cancel:"ยกเลิก",
+    coup_title:"คูป ฟูเร่! 🚨",
+    coup_body:"{attacker} เล่น {hazard} ใส่คุณ — แต่คุณมี {safety} ในมือ!",
+    coup_prompt:"สวนกลับเพื่อ +{bonus} ไมล์โบนัสและรับเทิร์นถัดไป?",
+    btn_counter:"สวนกลับ! 🛡️", btn_decline:"ปฏิเสธ",
+    splash_sub:"แข่งขับรถ 700 ไมล์ไปวอลลี่เวิลด์ให้ถึงก่อนครอบครัวอื่น",
+    splash_go_title:"🟢 การ์ด Go", splash_go_body:"ต้องมีการ์ด Go ก่อนจึงจะเล่นการ์ดระยะทางได้",
+    splash_speed_title:"🐌 จำกัดความเร็ว", splash_speed_body:"จำกัดให้วิ่งได้ 50 ไมล์ต่อเทิร์น จนกว่าจะเล่นยกเลิกความเร็ว",
+    splash_safety_title:"🛡️ ความปลอดภัย", splash_safety_body:"คุ้มครองถาวร เล่นได้ทุกเวลา แม้ตอนโดนโจมตี (Coup Fourré)",
+    splash_hazard_title:"🚨 อุปสรรคเดียว", splash_hazard_body:"แต่ละครอบครัวมีอุปสรรคได้ครั้งละหนึ่งอย่าง แจกให้ทั่ว!",
+    btn_start:"ออกเดินทาง!",
+    win_you:"🎉 วอลลี่เวิลด์!", win_them:"😭 พวกเขาชนะแล้ว!",
+    win_you_sub:"คุณถึงแล้วใน {n} ไมล์!",
+    win_them_sub:"{name} มาถึงก่อนที่ {n} ไมล์",
+    btn_race_again:"แข่งอีกครั้ง",
+    rules_title:"วิธีเล่น",
+    rules_goal_h:"เป้าหมาย",
+    rules_goal:"เป็นครอบครัวแรกที่ขับรถครบ <strong>700 ไมล์</strong> คุณแข่งกับ AI (ครอบครัวอื่น) จั่วการ์ด 1 ใบต่อเทิร์น แล้วเลือกเล่น 1 ใบ หรือทิ้ง 1 ใบ",
+    rules_cards_h:"ประเภทการ์ด",
+    rules_li_miles:"<strong>การ์ดระยะทาง</strong> (25, 50, 75, 100, 200 ไมล์) — เพิ่มระยะทางให้ทริป ต้องมีการ์ด Go ที่ใช้งานอยู่และไม่มีอุปสรรค ใช้การ์ด 200 ไมล์ได้สูงสุด 1 ใบต่อทริป",
+    rules_li_go:"<strong>Go (ออกตัว)</strong> — สตาร์ทเครื่อง ต้องมีก่อนจะเล่นการ์ดระยะทางได้",
+    rules_li_hazards:"<strong>อุปสรรค</strong> (ยางแบน, น้ำมันหมด, อุบัติเหตุ, จำกัดความเร็ว, หยุด) — เล่นใส่คู่แข่งเพื่อชะลอพวกเขา คู่แข่งจะขับต่อไม่ได้จนกว่าจะแก้ไข",
+    rules_li_remedies:"<strong>การ์ดแก้ไข</strong> (ยางสำรอง, น้ำมัน, ซ่อมแซม, ยกเลิกจำกัดความเร็ว, Go) — แก้อุปสรรคในครอบครัวของคุณ การ์ด Go ใช้แก้ \"หยุด\" ได้ด้วย",
+    rules_li_safeties:"<strong>การ์ดความปลอดภัย</strong> (ยางกันแบน, ถังพิเศษ, นักขับมืออาชีพ, สิทธิ์ก่อน) — เล่นได้ทุกเวลาเพื่อความคุ้มครองถาวร การเล่นการ์ดความปลอดภัยยังได้เทิร์นพิเศษฟรีอีกด้วย",
+    rules_coup_h:"Coup Fourré",
+    rules_coup:"ถ้า AI เล่นอุปสรรคใส่คุณ และคุณมีการ์ดความปลอดภัยที่ตรงกันในมือ คุณสามารถเล่นทันทีเป็น <em>Coup Fourré</em> — ยกเลิกอุปสรรคและขโมยเทิร์นคืนมา",
+    rules_win_h:"การชนะ",
+    rules_win:"ใครถึง 700 ไมล์พอดีก่อนเป็นผู้ชนะ ห้ามเกิน — การ์ดที่จะทำให้เกิน 700 ไมล์จะใช้ไม่ได้ วางแผนล่วงหน้าด้วย!",
+    rules_got_it:"เข้าใจแล้ว",
+    log_played_distance:"{who} เล่น {card} — รวม {dist} ไมล์",
+    log_played_go:"{who} เล่น Go — ออกเดินทาง!",
+    log_played_remedy:"{who} เล่น {card}",
+    log_played_hazard:"{who} เล่น {card} ใส่ {tgt}!",
+    log_played_safety:"{who} เล่น {card}!",
+    log_discarded:"{who} ทิ้ง {card}",
+    log_winner:"{who} ถึงวอลลี่เวิลด์! ({dist} ไมล์)",
+    log_coup_fourre:"{who} — คูป ฟูเร่! +{bonus} ไมล์!",
+    log_draw_first:"จั่วการ์ดก่อน!",
+  }
 };
 
-function renderLog(entry) {
+function fmt(str, vals) {
+  return str.replace(/\{(\w+)\}/g, function(_, k) { return vals[k] !== undefined ? vals[k] : ""; });
+}
+
+function renderLog(entry, s) {
+  if (!s) s = STRINGS.en;
   if (typeof entry === "string") return entry;
-  var fn = LOG_TEMPLATES[entry.key];
-  if (fn) return fn.apply(null, entry.args || []);
-  return entry.key;
+  var k = entry.key;
+  var a = entry.args || [];
+  var templates = {
+    played_distance: function() { return fmt(s.log_played_distance, {who:a[0],card:a[1],dist:a[2]}); },
+    played_go:       function() { return fmt(s.log_played_go, {who:a[0]}); },
+    played_remedy:   function() { return fmt(s.log_played_remedy, {who:a[0],card:a[1]}); },
+    played_hazard:   function() { return fmt(s.log_played_hazard, {who:a[0],card:a[1],tgt:a[2]}); },
+    played_safety:   function() { return fmt(s.log_played_safety, {who:a[0],card:a[1]}); },
+    discarded:       function() { return fmt(s.log_discarded, {who:a[0],card:a[1]}); },
+    winner:          function() { return fmt(s.log_winner, {who:a[0],dist:a[1]}); },
+    coup_fourre:     function() { return fmt(s.log_coup_fourre, {who:a[0],bonus:a[1]}); },
+    draw_first:      function() { return s.log_draw_first; },
+  };
+  var fn = templates[k];
+  return fn ? fn() : k;
 }
 
 function logClass(entry) {
@@ -1163,6 +1278,7 @@ function FamilyConvoyGame() {
   var showRules = _rules[0]; var setShowRules = _rules[1];
   var _lang = useState("en");
   var lang = _lang[0]; var setLang = _lang[1];
+  var t = STRINGS[lang] || STRINGS.en;
   var toastTimer = useRef(null);
   var prevPhase = useRef(gs.phase);
   var logRef = useRef(null);
@@ -1313,18 +1429,18 @@ function FamilyConvoyGame() {
   var selCardObj = selectedCard !== null ? me.hand[selectedCard] : null;
 
   function phaseLabel() {
-    if (gs.phase === "coupFourre") return "COUP FOURRÉ";
-    if (gs.phase === "draw") return "DRAW";
-    if (gs.phase === "play") return "PLAY";
-    if (gs.phase === "gameOver") return "FINISH LINE";
+    if (gs.phase === "coupFourre") return t.phase_coup;
+    if (gs.phase === "draw") return t.phase_draw;
+    if (gs.phase === "play") return t.phase_play;
+    if (gs.phase === "gameOver") return t.phase_finish;
     return gs.phase.toUpperCase();
   }
 
   function turnLabel() {
-    if (gs.phase === "gameOver") return "RACE OVER";
-    if (aiThinking) return current.name + " driving...";
-    if (isMyTurn) return "YOUR TURN";
-    return "WAITING";
+    if (gs.phase === "gameOver") return t.turn_over;
+    if (aiThinking) return current.name + " " + t.turn_driving;
+    if (isMyTurn) return t.turn_yours;
+    return t.turn_waiting;
   }
 
   // ── RENDER ────────────────────────────────────
@@ -1354,16 +1470,16 @@ function FamilyConvoyGame() {
               >
                 <div className="opp-name">{opp.name}</div>
                 <div className="opp-dist">{opp.distance.toLocaleString()}</div>
-                <div className="opp-dist-label">miles</div>
+                <div className="opp-dist-label">{t.miles}</div>
                 <div className="opp-bar"><div className="opp-bar-fill" style={{width: Math.min(100, opp.distance / WIN_DISTANCE * 100) + "%"}} /></div>
                 <div className="opp-status">
-                  {opp.isRolling && !opp.hazard && <span className="badge rolling">rolling</span>}
-                  {!opp.isRolling && !opp.hazard && <span className="badge stopped">stopped</span>}
+                  {opp.isRolling && !opp.hazard && <span className="badge rolling">{t.badge_rolling}</span>}
+                  {!opp.isRolling && !opp.hazard && <span className="badge stopped">{t.badge_stopped}</span>}
                   {opp.hazard && <span className="badge hazard">{CARD_MAP[opp.hazard] ? CARD_MAP[opp.hazard].name : opp.hazard}</span>}
-                  {opp.speedLimit && <span className="badge speed">speed limit</span>}
+                  {opp.speedLimit && <span className="badge speed">{t.badge_speed}</span>}
                   {opp.safeties.map(function(sid, i) { return <span key={i} className="badge safety">{CARD_MAP[sid] ? CARD_MAP[sid].name : sid}</span>; })}
                 </div>
-                <div className="opp-hand-ct">{opp.hand.length} cards</div>
+                <div className="opp-hand-ct">{opp.hand.length} {t.cards}</div>
               </div>
             );
           })}
@@ -1372,61 +1488,61 @@ function FamilyConvoyGame() {
         {/* Center */}
         <div className="center-col">
           <div className="my-zone">
-            <div className="dist-label">Miles Traveled</div>
+            <div className="dist-label">{t.miles_traveled}</div>
             <div className="dist-value">{me.distance.toLocaleString()}</div>
-            <div className="dist-unit">of {WIN_DISTANCE.toLocaleString()} miles to Wallyworld</div>
+            <div className="dist-unit">{fmt(t.of_miles, {n: WIN_DISTANCE.toLocaleString()})}</div>
             <div className="dist-bar"><div className="dist-bar-fill" style={{width: Math.min(100, me.distance / WIN_DISTANCE * 100) + "%"}} /></div>
             <div className="my-status">
-              {me.isRolling && !me.hazard && <span className="badge rolling">rolling</span>}
-              {!me.isRolling && !me.hazard && <span className="badge stopped">need Go card</span>}
+              {me.isRolling && !me.hazard && <span className="badge rolling">{t.badge_rolling}</span>}
+              {!me.isRolling && !me.hazard && <span className="badge stopped">{t.badge_need_go}</span>}
               {me.hazard && <span className="badge hazard">{CARD_MAP[me.hazard] ? CARD_MAP[me.hazard].name : me.hazard}</span>}
-              {me.speedLimit && <span className="badge speed">speed limit</span>}
+              {me.speedLimit && <span className="badge speed">{t.badge_speed}</span>}
               {me.safeties.map(function(sid, i) { return <span key={i} className="badge safety">{CARD_MAP[sid] ? CARD_MAP[sid].name : sid}</span>; })}
             </div>
           </div>
 
           <div className="log-box" ref={logRef}>
             {gs.log.map(function(entry, i) {
-              return <div key={i} className={logClass(entry)}>{renderLog(entry)}</div>;
+              return <div key={i} className={logClass(entry)}>{renderLog(entry, t)}</div>;
             })}
-            {gs.log.length === 0 && <div className="log-entry">Draw a card to hit the road!</div>}
+            {gs.log.length === 0 && <div className="log-entry">{t.draw_prompt}</div>}
           </div>
         </div>
 
         {/* Right */}
         <div className="right-col">
           <div className="deck-zone">
-            <div className="deck-label">Draw Pile</div>
+            <div className="deck-label">{t.draw_pile}</div>
             <div
               className={"deck-visual" + (isMyTurn && gs.phase === "draw" ? " clickable" : "")}
               onClick={handleDraw}
             >
-              {isMyTurn && gs.phase === "draw" ? "DRAW" : gs.deck.length}
+              {isMyTurn && gs.phase === "draw" ? t.phase_draw : gs.deck.length}
             </div>
           </div>
 
           <div className="deck-zone">
-            <div className="deck-label">Discard</div>
+            <div className="deck-label">{t.discard_pile}</div>
             {gs.discard.length > 0 ? (
               <div className="discard-top" style={{borderColor: gs.discard[gs.discard.length-1].type === "hazard" ? "#e03030" : gs.discard[gs.discard.length-1].type === "node" ? "#ffb81e" : gs.discard[gs.discard.length-1].type === "remedy" ? "#30c060" : "#60aaff"}}>
                 <div style={{fontSize:"20px"}}>{ICONS[gs.discard[gs.discard.length-1].name] || "🚗"}</div>
                 <div style={{fontSize:"9px",textTransform:"uppercase"}}>{gs.discard[gs.discard.length-1].name}</div>
-                <div style={{fontSize:"9px",color:"#5a4a30"}}>{gs.discard.length} total</div>
+                <div style={{fontSize:"9px",color:"#5a4a30"}}>{fmt(t.pile_total, {n: gs.discard.length})}</div>
               </div>
             ) : (
-              <div className="discard-top" style={{color:"#3a2a10"}}>empty</div>
+              <div className="discard-top" style={{color:"#3a2a10"}}>{t.pile_empty}</div>
             )}
           </div>
 
           <div className="action-buttons">
             <button className="btn btn-discard" onClick={handleDiscard} disabled={selectedCard === null || !isMyTurn || gs.phase !== "play"}>
-              Discard
+              {t.btn_discard}
             </button>
             <button className="btn btn-new" onClick={handleNewGame}>
-              New Race
+              {t.btn_new_race}
             </button>
             <button className="btn btn-rules" onClick={function(){ setShowRules(true); }}>
-              {lang === "en" ? "How to Play" : "วิธีเล่น"}
+              {t.btn_how_to_play}
             </button>
           </div>
         </div>
@@ -1437,15 +1553,15 @@ function FamilyConvoyGame() {
         <div className="prompt-bar">
           {selCardObj.type === "hazard" ? (
             <span style={{color:"#ff6060",fontSize:"13px",fontWeight:800}}>
-              🎯 Click a family to play {selCardObj.name} on them
+              {fmt(t.prompt_hazard, {card: selCardObj.name})}
             </span>
           ) : (
             <>
               <span style={{color: selCardObj.type === "node" ? "#ffb81e" : selCardObj.type === "remedy" ? "#60cc80" : "#60aaff", fontSize:"13px",fontWeight:800}}>
-                Play {selCardObj.name}{selCardObj.value ? " (+" + selCardObj.value + " miles)" : ""}?
+                {fmt(t.prompt_play, {card: selCardObj.name, miles: selCardObj.value ? fmt(t.prompt_miles, {n: selCardObj.value}) : ""})}
               </span>
-              <button className="btn btn-play" onClick={handleConfirmPlay} style={{padding:"5px 18px",fontSize:"12px"}}>OK</button>
-              <button className="btn btn-cancel" onClick={function(){ setSelectedCard(null); }} style={{padding:"5px 18px",fontSize:"12px"}}>Cancel</button>
+              <button className="btn btn-play" onClick={handleConfirmPlay} style={{padding:"5px 18px",fontSize:"12px"}}>{t.btn_ok}</button>
+              <button className="btn btn-cancel" onClick={function(){ setSelectedCard(null); }} style={{padding:"5px 18px",fontSize:"12px"}}>{t.btn_cancel}</button>
             </>
           )}
         </div>
@@ -1489,16 +1605,20 @@ function FamilyConvoyGame() {
       {/* Coup Fourré overlay */}
       {gs.phase === "coupFourre" && gs._coupState && gs._coupState.targetId === me.id && (
         <div className="overlay">
-          <div className="coup-title">Coup Fourré! 🚨</div>
+          <div className="coup-title">{t.coup_title}</div>
           <div className="coup-sub">
-            {gs.players.find(function(p){return p.id===gs._coupState.originatorId;}).name} played {CARD_MAP[gs._coupState.hazardCardId].name} on you — but you have {CARD_MAP[gs._coupState.safetyCardId].name} in your hand!
+            {fmt(t.coup_body, {
+              attacker: gs.players.find(function(p){return p.id===gs._coupState.originatorId;}).name,
+              hazard: CARD_MAP[gs._coupState.hazardCardId].name,
+              safety: CARD_MAP[gs._coupState.safetyCardId].name
+            })}
           </div>
           <div className="coup-sub" style={{color:"#60aaff"}}>
-            Counter it for +{CARD_MAP[gs._coupState.safetyCardId].coupBonus} bonus miles and take the next turn?
+            {fmt(t.coup_prompt, {bonus: CARD_MAP[gs._coupState.safetyCardId].coupBonus})}
           </div>
           <div className="coup-actions">
-            <button className="btn btn-counter" onClick={function(){ handleCoupFourre(true); }}>Counter It! 🛡️</button>
-            <button className="btn btn-decline" onClick={function(){ handleCoupFourre(false); }}>Decline</button>
+            <button className="btn btn-counter" onClick={function(){ handleCoupFourre(true); }}>{t.btn_counter}</button>
+            <button className="btn btn-decline" onClick={function(){ handleCoupFourre(false); }}>{t.btn_decline}</button>
           </div>
         </div>
       )}
@@ -1519,32 +1639,15 @@ function FamilyConvoyGame() {
             </button>
           </div>
 
-          <div className="splash-sub">
-            {lang === "en"
-              ? "Race 700 miles to Wallyworld before the other family gets there first."
-              : "แข่งขับรถ 700 ไมล์ไปวอลลี่เวิลด์ให้ถึงก่อนครอบครัวอื่น"}
-          </div>
+          <div className="splash-sub">{t.splash_sub}</div>
           <div className="road-stripe" style={{width:"320px"}} />
           <div className="splash-rules">
-            {lang === "en" ? (
-              <>
-                <div className="rule-card"><span>🟢 Go Card</span>You need a Go card before you can play any distance cards.</div>
-                <div className="rule-card"><span>🐌 Speed Limit</span>Limits you to 50 miles per turn until you play End Speed Limit.</div>
-                <div className="rule-card"><span>🛡️ Safeties</span>Permanent protection. Play them any time — even during someone's attack (Coup Fourré).</div>
-                <div className="rule-card"><span>🚨 One Hazard</span>Only one hazard per family at a time. Spread the misery.</div>
-              </>
-            ) : (
-              <>
-                <div className="rule-card"><span>🟢 การ์ด Go</span>ต้องมีการ์ด Go ก่อนจึงจะเล่นการ์ดระยะทางได้</div>
-                <div className="rule-card"><span>🐌 จำกัดความเร็ว</span>จำกัดให้วิ่งได้ 50 ไมล์ต่อเทิร์น จนกว่าจะเล่นยกเลิกความเร็ว</div>
-                <div className="rule-card"><span>🛡️ ความปลอดภัย</span>คุ้มครองถาวร เล่นได้ทุกเวลา แม้ตอนโดนโจมตี (Coup Fourré)</div>
-                <div className="rule-card"><span>🚨 อุปสรรคเดียว</span>แต่ละครอบครัวมีอุปสรรคได้ครั้งละหนึ่งอย่าง แจกให้ทั่ว!</div>
-              </>
-            )}
+            <div className="rule-card"><span>{t.splash_go_title}</span>{t.splash_go_body}</div>
+            <div className="rule-card"><span>{t.splash_speed_title}</span>{t.splash_speed_body}</div>
+            <div className="rule-card"><span>{t.splash_safety_title}</span>{t.splash_safety_body}</div>
+            <div className="rule-card"><span>{t.splash_hazard_title}</span>{t.splash_hazard_body}</div>
           </div>
-          <button className="btn-start" onClick={function(){ setShowSplash(false); }}>
-            {lang === "en" ? "Hit the Road!" : "ออกเดินทาง!"}
-          </button>
+          <button className="btn-start" onClick={function(){ setShowSplash(false); }}>{t.btn_start}</button>
         </div>
       )}
 
@@ -1552,15 +1655,15 @@ function FamilyConvoyGame() {
       {gs.phase === "gameOver" && (
         <div className="overlay">
           <div className="win-title">
-            {gs.winner === me.id ? "🎉 WALLYWORLD!" : "😭 They Beat You!"}
+            {gs.winner === me.id ? t.win_you : t.win_them}
           </div>
           <div style={{fontSize:"60px"}}>{gs.winner === me.id ? "🎢" : "🚗"}</div>
           <div className="win-sub">
             {gs.winner === me.id
-              ? "You made it in " + me.distance + " miles!"
-              : gs.players.find(function(p){return p.id===gs.winner;}).name + " arrived first at " + gs.players.find(function(p){return p.id===gs.winner;}).distance + " miles."}
+              ? fmt(t.win_you_sub, {n: me.distance})
+              : fmt(t.win_them_sub, {name: gs.players.find(function(p){return p.id===gs.winner;}).name, n: gs.players.find(function(p){return p.id===gs.winner;}).distance})}
           </div>
-          <button className="btn-start" onClick={handleNewGame} style={{marginTop:"8px"}}>Race Again</button>
+          <button className="btn-start" onClick={handleNewGame} style={{marginTop:"8px"}}>{t.btn_race_again}</button>
         </div>
       )}
 
@@ -1568,62 +1671,30 @@ function FamilyConvoyGame() {
       {showRules && (
         <div className="rules-overlay" onClick={function(e){ if(e.target.className==="rules-overlay") setShowRules(false); }}>
           <div className="rules-modal">
-            <h2>🚛 {lang === "en" ? "How to Play" : "วิธีเล่น"}</h2>
-
+            <h2>🚛 {t.rules_title}</h2>
             <div className="rules-lang-row">
               <button className={"rules-lang-btn" + (lang === "en" ? " active" : "")} onClick={function(){ setLang("en"); }}>
-                <span className="flag">🇺🇸</span>
-                <span className="label">ENG</span>
+                <span className="flag">🇺🇸</span><span className="label">ENG</span>
               </button>
               <button className={"rules-lang-btn" + (lang === "th" ? " active" : "")} onClick={function(){ setLang("th"); }}>
-                <span className="flag">🇹🇭</span>
-                <span className="label">THAI</span>
+                <span className="flag">🇹🇭</span><span className="label">THAI</span>
               </button>
             </div>
-
-            {lang === "en" ? (
-              <div>
-                <h3>Goal</h3>
-                <p>Be the first family to drive exactly <strong>700 miles</strong>. You play against the AI (the other family). Draw a card each turn, then play one or discard one.</p>
-
-                <h3>Card Types</h3>
-                <ul>
-                  <li><strong>Mile Cards</strong> (25, 50, 75, 100, 200 mi) — Add miles to your trip. You must have a <em>Go</em> card active and no hazards to play miles. Max one 200-mile card per trip.</li>
-                  <li><strong>Go</strong> — Starts your engine. Required before you can play mile cards.</li>
-                  <li><strong>Hazards</strong> (Flat Tire, Out of Gas, Accident, Speed Limit, Stop) — Play these on your opponent to slow them down. They can't drive until they fix it.</li>
-                  <li><strong>Remedies</strong> (Spare Tire, Gas, Repairs, End Limit, Go) — Fix a hazard on your own family. Go doubles as a remedy for Stop.</li>
-                  <li><strong>Safety Cards</strong> (Puncture Proof, Extra Tank, Driving Ace, Right of Way) — Play anytime for permanent immunity against the matching hazard. Playing a safety also gives you a free extra turn.</li>
-                </ul>
-
-                <h3>Coup Fourré</h3>
-                <p>If the AI plays a hazard on you and you have the matching Safety card in hand, you can immediately play it as a <em>Coup Fourré</em> — canceling the hazard and stealing the turn.</p>
-
-                <h3>Winning</h3>
-                <p>First to hit exactly 700 miles wins. You can't overshoot — a mile card that would push you past 700 is unplayable. Plan ahead!</p>
-              </div>
-            ) : (
-              <div>
-                <h3>เป้าหมาย</h3>
-                <p>เป็นครอบครัวแรกที่ขับรถครบ <strong>700 ไมล์</strong> คุณแข่งกับ AI (ครอบครัวอื่น) จั่วการ์ด 1 ใบต่อเทิร์น แล้วเลือกเล่น 1 ใบ หรือทิ้ง 1 ใบ</p>
-
-                <h3>ประเภทการ์ด</h3>
-                <ul>
-                  <li><strong>การ์ดระยะทาง</strong> (25, 50, 75, 100, 200 ไมล์) — เพิ่มระยะทางให้ทริป ต้องมีการ์ด Go ที่ใช้งานอยู่และไม่มีอุปสรรค ใช้การ์ด 200 ไมล์ได้สูงสุด 1 ใบต่อทริป</li>
-                  <li><strong>Go (ออกตัว)</strong> — สตาร์ทเครื่อง ต้องมีก่อนจะเล่นการ์ดระยะทางได้</li>
-                  <li><strong>อุปสรรค</strong> (ยางแบน, น้ำมันหมด, อุบัติเหตุ, จำกัดความเร็ว, หยุด) — เล่นใส่คู่แข่งเพื่อชะลอพวกเขา คู่แข่งจะขับต่อไม่ได้จนกว่าจะแก้ไข</li>
-                  <li><strong>การ์ดแก้ไข</strong> (ยางสำรอง, น้ำมัน, ซ่อมแซม, ยกเลิกจำกัดความเร็ว, Go) — แก้อุปสรรคในครอบครัวของคุณ การ์ด Go ใช้แก้ "หยุด" ได้ด้วย</li>
-                  <li><strong>การ์ดความปลอดภัย</strong> (ยางกันแบน, ถังพิเศษ, นักขับมืออาชีพ, สิทธิ์ก่อน) — เล่นได้ทุกเวลาเพื่อความคุ้มครองถาวร การเล่นการ์ดความปลอดภัยยังได้เทิร์นพิเศษฟรีอีกด้วย</li>
-                </ul>
-
-                <h3>Coup Fourré</h3>
-                <p>ถ้า AI เล่นอุปสรรคใส่คุณ และคุณมีการ์ดความปลอดภัยที่ตรงกันในมือ คุณสามารถเล่นทันทีเป็น <em>Coup Fourré</em> — ยกเลิกอุปสรรคและขโมยเทิร์นคืนมา</p>
-
-                <h3>การชนะ</h3>
-                <p>ใครถึง 700 ไมล์พอดีก่อนเป็นผู้ชนะ ห้ามเกิน — การ์ดที่จะทำให้เกิน 700 ไมล์จะใช้ไม่ได้ วางแผนล่วงหน้าด้วย!</p>
-              </div>
-            )}
-
-            <button className="rules-close" onClick={function(){ setShowRules(false); }}>{lang === "en" ? "Got It" : "เข้าใจแล้ว"}</button>
+            <h3>{t.rules_goal_h}</h3>
+            <p dangerouslySetInnerHTML={{__html: t.rules_goal}} />
+            <h3>{t.rules_cards_h}</h3>
+            <ul>
+              <li dangerouslySetInnerHTML={{__html: t.rules_li_miles}} />
+              <li dangerouslySetInnerHTML={{__html: t.rules_li_go}} />
+              <li dangerouslySetInnerHTML={{__html: t.rules_li_hazards}} />
+              <li dangerouslySetInnerHTML={{__html: t.rules_li_remedies}} />
+              <li dangerouslySetInnerHTML={{__html: t.rules_li_safeties}} />
+            </ul>
+            <h3>{t.rules_coup_h}</h3>
+            <p dangerouslySetInnerHTML={{__html: t.rules_coup}} />
+            <h3>{t.rules_win_h}</h3>
+            <p dangerouslySetInnerHTML={{__html: t.rules_win}} />
+            <button className="rules-close" onClick={function(){ setShowRules(false); }}>{t.rules_got_it}</button>
           </div>
         </div>
       )}
