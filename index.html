@@ -422,6 +422,20 @@
   }
   .rules-close:hover { background: rgba(255,180,30,0.28); }
 
+  /* ── LANG TOGGLE ── */
+  .lang-toggle { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 6px; }
+  .lang-btn { display: flex; flex-direction: column; align-items: center; gap: 1px; background: none; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 3px 10px; cursor: pointer; opacity: 0.45; transition: all 0.2s; }
+  .lang-btn.active { opacity: 1; border-color: rgba(255,184,30,0.55); background: rgba(255,184,30,0.08); }
+  .lang-btn .flag { font-size: 20px; line-height: 1.2; }
+  .lang-btn .label { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #c8b89a; font-family: 'Nunito', sans-serif; }
+
+  /* ── RULES LANG TOGGLE (inside modal) ── */
+  .rules-lang-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; }
+  .rules-lang-btn { display: flex; flex-direction: column; align-items: center; gap: 1px; background: none; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 3px 12px; cursor: pointer; opacity: 0.4; transition: all 0.2s; }
+  .rules-lang-btn.active { opacity: 1; border-color: rgba(255,184,30,0.55); background: rgba(255,184,30,0.08); }
+  .rules-lang-btn .flag { font-size: 22px; line-height: 1.2; }
+  .rules-lang-btn .label { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #c8b89a; font-family: 'Nunito', sans-serif; }
+
   .btn-play { background: rgba(60,180,60,0.25); color: #60e060; border: 1px solid rgba(60,180,60,0.4); }
   .btn-play:hover { background: rgba(60,180,60,0.4); }
 
@@ -1145,6 +1159,8 @@ function FamilyConvoyGame() {
   var phaseFlash = _phaseFlash[0]; var setPhaseFlash = _phaseFlash[1];
   var _rules = useState(false);
   var showRules = _rules[0]; var setShowRules = _rules[1];
+  var _lang = useState("en");
+  var lang = _lang[0]; var setLang = _lang[1];
   var toastTimer = useRef(null);
   var prevPhase = useRef(gs.phase);
   var logRef = useRef(null);
@@ -1411,6 +1427,16 @@ function FamilyConvoyGame() {
               How to Play
             </button>
           </div>
+          <div className="lang-toggle">
+            <button className={"lang-btn" + (lang === "en" ? " active" : "")} onClick={function(){ setLang("en"); }}>
+              <span className="flag">🇺🇸</span>
+              <span className="label">ENG</span>
+            </button>
+            <button className={"lang-btn" + (lang === "th" ? " active" : "")} onClick={function(){ setLang("th"); }}>
+              <span className="flag">🇹🇭</span>
+              <span className="label">THAI</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1521,27 +1547,62 @@ function FamilyConvoyGame() {
       {showRules && (
         <div className="rules-overlay" onClick={function(e){ if(e.target.className==="rules-overlay") setShowRules(false); }}>
           <div className="rules-modal">
-            <h2>🚛 How to Play</h2>
+            <h2>🚛 {lang === "en" ? "How to Play" : "วิธีเล่น"}</h2>
 
-            <h3>Goal</h3>
-            <p>Be the first family to drive exactly <strong>700 miles</strong>. You play against the AI (the other family). Draw a card each turn, then play one or discard one.</p>
+            <div className="rules-lang-row">
+              <button className={"rules-lang-btn" + (lang === "en" ? " active" : "")} onClick={function(){ setLang("en"); }}>
+                <span className="flag">🇺🇸</span>
+                <span className="label">ENG</span>
+              </button>
+              <button className={"rules-lang-btn" + (lang === "th" ? " active" : "")} onClick={function(){ setLang("th"); }}>
+                <span className="flag">🇹🇭</span>
+                <span className="label">THAI</span>
+              </button>
+            </div>
 
-            <h3>Card Types</h3>
-            <ul>
-              <li><strong>Mile Cards</strong> (25, 50, 75, 100, 200 mi) — Add miles to your trip. You must have a <em>Go</em> card active and no hazards to play miles. Max one 200-mile card per trip.</li>
-              <li><strong>Go</strong> — Starts your engine. Required before you can play mile cards.</li>
-              <li><strong>Hazards</strong> (Flat Tire, Out of Gas, Accident, Speed Limit, Stop) — Play these on your opponent to slow them down. They can't drive until they fix it.</li>
-              <li><strong>Remedies</strong> (Spare Tire, Gas, Repairs, End Limit, Go) — Fix a hazard on your own family. Go doubles as a remedy for Stop.</li>
-              <li><strong>Safety Cards</strong> (Puncture Proof, Extra Tank, Driving Ace, Right of Way) — Play anytime for permanent immunity against the matching hazard. Playing a safety also gives you a free extra turn.</li>
-            </ul>
+            {lang === "en" ? (
+              <div>
+                <h3>Goal</h3>
+                <p>Be the first family to drive exactly <strong>700 miles</strong>. You play against the AI (the other family). Draw a card each turn, then play one or discard one.</p>
 
-            <h3>Coup Fourré</h3>
-            <p>If the AI plays a hazard on you and you have the matching Safety card in hand, you can immediately play it as a <em>Coup Fourré</em> — canceling the hazard and stealing the turn.</p>
+                <h3>Card Types</h3>
+                <ul>
+                  <li><strong>Mile Cards</strong> (25, 50, 75, 100, 200 mi) — Add miles to your trip. You must have a <em>Go</em> card active and no hazards to play miles. Max one 200-mile card per trip.</li>
+                  <li><strong>Go</strong> — Starts your engine. Required before you can play mile cards.</li>
+                  <li><strong>Hazards</strong> (Flat Tire, Out of Gas, Accident, Speed Limit, Stop) — Play these on your opponent to slow them down. They can't drive until they fix it.</li>
+                  <li><strong>Remedies</strong> (Spare Tire, Gas, Repairs, End Limit, Go) — Fix a hazard on your own family. Go doubles as a remedy for Stop.</li>
+                  <li><strong>Safety Cards</strong> (Puncture Proof, Extra Tank, Driving Ace, Right of Way) — Play anytime for permanent immunity against the matching hazard. Playing a safety also gives you a free extra turn.</li>
+                </ul>
 
-            <h3>Winning</h3>
-            <p>First to hit exactly 700 miles wins. You can't overshoot — a mile card that would push you past 700 is unplayable. Plan ahead!</p>
+                <h3>Coup Fourré</h3>
+                <p>If the AI plays a hazard on you and you have the matching Safety card in hand, you can immediately play it as a <em>Coup Fourré</em> — canceling the hazard and stealing the turn.</p>
 
-            <button className="rules-close" onClick={function(){ setShowRules(false); }}>Got It</button>
+                <h3>Winning</h3>
+                <p>First to hit exactly 700 miles wins. You can't overshoot — a mile card that would push you past 700 is unplayable. Plan ahead!</p>
+              </div>
+            ) : (
+              <div>
+                <h3>เป้าหมาย</h3>
+                <p>เป็นครอบครัวแรกที่ขับรถครบ <strong>700 ไมล์</strong> คุณแข่งกับ AI (ครอบครัวอื่น) จั่วการ์ด 1 ใบต่อเทิร์น แล้วเลือกเล่น 1 ใบ หรือทิ้ง 1 ใบ</p>
+
+                <h3>ประเภทการ์ด</h3>
+                <ul>
+                  <li><strong>การ์ดระยะทาง</strong> (25, 50, 75, 100, 200 ไมล์) — เพิ่มระยะทางให้ทริป ต้องมีการ์ด Go ที่ใช้งานอยู่และไม่มีอุปสรรค ใช้การ์ด 200 ไมล์ได้สูงสุด 1 ใบต่อทริป</li>
+                  <li><strong>Go (ออกตัว)</strong> — สตาร์ทเครื่อง ต้องมีก่อนจะเล่นการ์ดระยะทางได้</li>
+                  <li><strong>อุปสรรค</strong> (ยางแบน, น้ำมันหมด, อุบัติเหตุ, จำกัดความเร็ว, หยุด) — เล่นใส่คู่แข่งเพื่อชะลอพวกเขา คู่แข่งจะขับต่อไม่ได้จนกว่าจะแก้ไข</li>
+                  <li><strong>การ์ดแก้ไข</strong> (ยางสำรอง, น้ำมัน, ซ่อมแซม, ยกเลิกจำกัดความเร็ว, Go) — แก้อุปสรรคในครอบครัวของคุณ การ์ด Go ใช้แก้ "หยุด" ได้ด้วย</li>
+                  <li><strong>การ์ดความปลอดภัย</strong> (ยางกันแบน, ถังพิเศษ, นักขับมืออาชีพ, สิทธิ์ก่อน) — เล่นได้ทุกเวลาเพื่อความคุ้มครองถาวร การเล่นการ์ดความปลอดภัยยังได้เทิร์นพิเศษฟรีอีกด้วย</li>
+                </ul>
+
+                <h3>Coup Fourré</h3>
+                <p>ถ้า AI เล่นอุปสรรคใส่คุณ และคุณมีการ์ดความปลอดภัยที่ตรงกันในมือ คุณสามารถเล่นทันทีเป็น <em>Coup Fourré</em> — ยกเลิกอุปสรรคและขโมยเทิร์นคืนมา</p>
+
+                <h3>การชนะ</h3>
+                <p>ใครถึง 700 ไมล์พอดีก่อนเป็นผู้ชนะ ห้ามเกิน — การ์ดที่จะทำให้เกิน 700 ไมล์จะใช้ไม่ได้ วางแผนล่วงหน้าด้วย!</p>
+              </div>
+            )}
+
+            <button className="rules-close" onClick={function(){ setShowRules(false); }}>{lang === "en" ? "Got It" : "เข้าใจแล้ว"}</button>
           </div>
         </div>
       )}
