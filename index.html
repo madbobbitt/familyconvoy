@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Family Convoy</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a0e05;
+    background-image:
+      radial-gradient(ellipse at top, #2d1a08 0%, #1a0e05 60%),
+      repeating-linear-gradient(90deg, transparent, transparent 80px, rgba(255,200,50,0.015) 80px, rgba(255,200,50,0.015) 82px);
+    color: #f0e6d0;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── LAYOUT ── */
+  .game-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,180,30,0.25);
+    border-radius: 10px;
+    padding: 8px 14px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .game-title {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 22px;
+    color: #ffb81e;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 8px rgba(255,160,0,0.4);
+  }
+
+  .header-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .phase-tag {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #c8b89a;
+    transition: all 0.3s;
+  }
+  .phase-tag.draw { border-color: rgba(255,184,30,0.5); color: #ffb81e; }
+  .phase-tag.play { border-color: rgba(80,220,80,0.5); color: #60e060; }
+  .phase-tag.gameOver { border-color: rgba(255,80,80,0.5); color: #ff6060; }
+  .phase-tag.flash { background: rgba(255,184,30,0.2); }
+
+  .turn-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #8a7a60;
+  }
+  .turn-tag.yours { color: #60e060; }
+
+  /* ── MAIN AREA ── */
+  .game-main {
+    display: grid;
+    grid-template-columns: 180px 1fr 140px;
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  @media (max-width: 640px) {
+    .game-main { grid-template-columns: 1fr; }
+  }
+
+  /* ── OPPONENTS ── */
+  .opponents-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .opp {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,180,30,0.15);
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .opp:hover { border-color: rgba(255,80,80,0.5); }
+  .opp.target-selected { border-color: #ff5050; background: rgba(255,50,50,0.12); }
+
+  .opp-name {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #ffb81e;
+    margin-bottom: 4px;
+  }
+
+  .opp-dist {
+    font-size: 22px;
+    font-weight: 800;
+    color: #f0e6d0;
+    line-height: 1;
+  }
+
+  .opp-dist-label {
+    font-size: 9px;
+    color: #7a6a50;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .opp-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    margin: 6px 0;
+    overflow: hidden;
+  }
+  .opp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffb81e, #ff8c00);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .opp-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 4px;
+  }
+
+  .badge {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 10px;
+  }
+  .badge.hazard { background: rgba(220,50,50,0.2); color: #ff7070; border: 1px solid rgba(220,50,50,0.35); }
+  .badge.speed { background: rgba(255,150,0,0.2); color: #ffaa30; border: 1px solid rgba(255,150,0,0.35); }
+  .badge.safety { background: rgba(50,180,100,0.2); color: #60cc80; border: 1px solid rgba(50,180,100,0.35); }
+  .badge.rolling { background: rgba(50,180,50,0.15); color: #50c050; border: 1px solid rgba(50,180,50,0.3); }
+  .badge.stopped { background: rgba(150,150,150,0.15); color: #999; border: 1px solid rgba(150,150,150,0.25); }
+
+  .opp-hand-ct {
+    font-size: 10px;
+    color: #5a4a30;
+    margin-top: 4px;
+  }
+
+  /* ── CENTER ── */
+  .center-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .my-zone {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,180,30,0.2);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .dist-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #7a6a50;
+    margin-bottom: 2px;
+  }
+
+  .dist-value {
+    font-size: 42px;
+    font-weight: 800;
+    color: #ffb81e;
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(255,184,30,0.3);
+  }
+
+  .dist-unit {
+    font-size: 13px;
+    color: #7a6a50;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .dist-bar {
+    height: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    margin: 8px 0 6px;
+    overflow: hidden;
+  }
+  .dist-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffb81e, #ff8c00);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .my-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 20px;
+  }
+
+  /* ── LOG ── */
+  .log-box {
+    flex: 1;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,180,30,0.1);
+    border-radius: 10px;
+    padding: 10px 12px;
+    overflow-y: auto;
+    max-height: 220px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,180,30,0.2) transparent;
+  }
+
+  .log-entry {
+    font-size: 13px;
+    font-weight: 600;
+    color: #7a6a50;
+    line-height: 1.5;
+  }
+  .log-entry.you { color: #ffb81e; }
+  .log-entry.hazard { color: #ff6060; }
+  .log-entry.remedy { color: #60cc80; }
+  .log-entry.safety { color: #60aaff; }
+  .log-entry.win { color: #ffb81e; font-size: 14px; font-weight: 800; }
+  .log-entry.roll { color: #60e060; }
+
+  /* ── RIGHT COL ── */
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .deck-zone {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,180,30,0.15);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .deck-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #5a4a30;
+    margin-bottom: 6px;
+  }
+
+  .deck-visual {
+    font-size: 28px;
+    font-weight: 800;
+    color: #f0e6d0;
+    padding: 12px 0;
+    border-radius: 8px;
+    background: rgba(255,180,30,0.05);
+    border: 1px solid rgba(255,180,30,0.1);
+    cursor: default;
+    transition: all 0.2s;
+  }
+  .deck-visual.clickable {
+    border-color: rgba(255,184,30,0.5);
+    cursor: pointer;
+    background: rgba(255,180,30,0.1);
+  }
+  .deck-visual.clickable:hover {
+    background: rgba(255,180,30,0.2);
+    border-color: #ffb81e;
+  }
+
+  .discard-top {
+    font-size: 11px;
+    padding: 8px 4px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #5a4a30;
+    text-align: center;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .btn-discard { background: rgba(150,100,50,0.3); color: #c8a060; border: 1px solid rgba(150,100,50,0.4); }
+  .btn-discard:not(:disabled):hover { background: rgba(180,100,40,0.5); }
+
+  .btn-new { background: rgba(255,180,30,0.15); color: #ffb81e; border: 1px solid rgba(255,180,30,0.3); }
+  .btn-new:hover { background: rgba(255,180,30,0.25); }
+
+  .btn-play { background: rgba(60,180,60,0.25); color: #60e060; border: 1px solid rgba(60,180,60,0.4); }
+  .btn-play:hover { background: rgba(60,180,60,0.4); }
+
+  .btn-cancel { background: rgba(150,100,50,0.2); color: #c8a060; border: 1px solid rgba(150,100,50,0.3); }
+  .btn-cancel:hover { background: rgba(150,100,50,0.35); }
+
+  .btn-counter { background: rgba(60,160,255,0.2); color: #60aaff; border: 1px solid rgba(60,160,255,0.4); font-size: 14px; padding: 12px 24px; }
+  .btn-counter:hover { background: rgba(60,160,255,0.35); }
+
+  .btn-decline { background: rgba(150,100,50,0.2); color: #c8a060; border: 1px solid rgba(150,100,50,0.3); font-size: 14px; padding: 12px 24px; }
+  .btn-decline:hover { background: rgba(150,100,50,0.35); }
+
+  /* ── PROMPT BAR ── */
+  .prompt-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,180,30,0.2);
+    border-radius: 10px;
+    padding: 8px 14px;
+    flex-wrap: wrap;
+  }
+
+  /* ── HAND ── */
+  .hand-container {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,180,30,0.1);
+    border-radius: 10px;
+    padding: 10px;
+    overflow-x: auto;
+  }
+
+  .hand {
+    display: flex;
+    gap: 6px;
+    min-height: 120px;
+    align-items: flex-end;
+    padding-bottom: 2px;
+  }
+
+  .hand-slot { flex-shrink: 0; }
+
+  /* ── CARD ── */
+  .card {
+    width: 72px;
+    height: 108px;
+    border-radius: 8px;
+    border: 2px solid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: linear-gradient(160deg, rgba(30,20,10,0.97), rgba(20,12,5,0.97));
+    text-align: center;
+    font-family: 'Nunito', sans-serif;
+    user-select: none;
+  }
+
+  .card.node { border-color: #ffb81e; }
+  .card.hazard { border-color: #e03030; }
+  .card.remedy { border-color: #30c060; }
+  .card.safety { border-color: #60aaff; }
+
+  .card.selected { transform: translateY(-12px); box-shadow: 0 8px 24px currentColor; }
+  .card.unplayable { opacity: 0.35; filter: grayscale(0.5); }
+  .card:hover:not(.unplayable) { transform: translateY(-6px); }
+  .card.selected:hover { transform: translateY(-14px); }
+
+  .card-name {
+    font-size: 8.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+  }
+  .card.node .card-name { color: #ffb81e; }
+  .card.hazard .card-name { color: #ff6060; }
+  .card.remedy .card-name { color: #60cc80; }
+  .card.safety .card-name { color: #80c0ff; }
+
+  .card-icon { font-size: 32px; line-height: 1; }
+
+  .card-value {
+    font-size: 16px;
+    font-weight: 800;
+  }
+  .card.node .card-value { color: #ffb81e; }
+  .card.hazard .card-value { color: #ff6060; }
+  .card.remedy .card-value { color: #60cc80; }
+  .card.safety .card-value { color: #80c0ff; }
+
+  /* ── CARD TOAST ── */
+  @keyframes toastFade {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.65); }
+    12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+    20%  { transform: translate(-50%, -50%) scale(1); }
+    78%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  }
+  .card-toast {
+    position: fixed; top: 45%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1500; pointer-events: none;
+    animation: toastFade 1.8s ease forwards;
+  }
+  .card-toast-inner {
+    width: 160px; height: 220px; border: 3px solid;
+    border-radius: 10px; display: flex; flex-direction: column;
+    justify-content: space-between; align-items: center;
+    padding: 14px 10px;
+    background: linear-gradient(160deg, rgba(30,18,5,0.97), rgba(20,10,2,0.97));
+    text-align: center; font-family: 'Nunito', sans-serif;
+    box-shadow: 0 0 50px currentColor;
+  }
+  .card-toast-agent { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #5a4a30; font-weight: 800; }
+  .card-toast-name  { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; }
+  .card-toast-icon  { font-size: 58px; line-height: 1; }
+  .card-toast-value { font-size: 22px; font-weight: 800; }
+
+  /* ── OVERLAYS ── */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(10,5,0,0.88);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 1000; gap: 16px;
+    text-align: center; padding: 24px;
+  }
+
+  .splash-title {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 52px;
+    color: #ffb81e;
+    text-shadow: 0 4px 20px rgba(255,184,30,0.5);
+    letter-spacing: 3px;
+    line-height: 1;
+  }
+
+  .splash-sub {
+    font-size: 14px;
+    color: #7a6a50;
+    max-width: 420px;
+    line-height: 1.7;
+    font-weight: 600;
+  }
+
+  .splash-rules {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    max-width: 400px;
+    margin: 4px 0;
+  }
+
+  .rule-card {
+    background: rgba(255,180,30,0.06);
+    border: 1px solid rgba(255,180,30,0.15);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: #8a7a60;
+    font-weight: 700;
+    text-align: left;
+    line-height: 1.5;
+  }
+
+  .rule-card span { color: #ffb81e; display: block; font-size: 12px; margin-bottom: 2px; }
+
+  .btn-start {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 22px;
+    letter-spacing: 2px;
+    padding: 14px 48px;
+    background: linear-gradient(135deg, #ffb81e, #ff8c00);
+    color: #1a0e05;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 8px;
+    box-shadow: 0 4px 20px rgba(255,140,0,0.4);
+  }
+  .btn-start:hover { transform: scale(1.04); box-shadow: 0 6px 28px rgba(255,140,0,0.55); }
+
+  .win-title {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 42px;
+    color: #ffb81e;
+    text-shadow: 0 4px 20px rgba(255,184,30,0.5);
+  }
+
+  .win-sub { font-size: 16px; color: #c8a060; font-weight: 700; }
+
+  .coup-title {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 32px;
+    color: #60aaff;
+  }
+  .coup-sub { font-size: 14px; color: #8a9ab0; max-width: 340px; line-height: 1.6; }
+  .coup-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+  /* ── ROAD STRIPE DIVIDER ── */
+  .road-stripe {
+    height: 6px;
+    background: repeating-linear-gradient(90deg, #ffb81e 0px, #ffb81e 30px, transparent 30px, transparent 50px);
+    border-radius: 3px;
+    opacity: 0.3;
+    margin: 2px 0;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ═══════════════════════════════════════════════════
+// CARD DEFINITIONS
+// ═══════════════════════════════════════════════════
+const CARD_DEFS = [
+  // Distance
+  { id:"mile_25",  name:"25 Miles",  type:"node", value:25,  count:10 },
+  { id:"mile_50",  name:"50 Miles",  type:"node", value:50,  count:10 },
+  { id:"mile_75",  name:"75 Miles",  type:"node", value:75,  count:10 },
+  { id:"mile_100", name:"100 Miles", type:"node", value:100, count:12 },
+  { id:"mile_200", name:"200 Miles", type:"node", value:200, count:6  },
+
+  // Hazards
+  { id:"haz_gas",      name:"Out of Gas",  type:"hazard", remediedBy:"rem_gas",   immuneWith:"saf_tank",    blocksRoll:true,  count:3 },
+  { id:"haz_tire",     name:"Flat Tire",   type:"hazard", remediedBy:"rem_tire",  immuneWith:"saf_proof",   blocksRoll:true,  count:3 },
+  { id:"haz_accident", name:"Accident",    type:"hazard", remediedBy:"rem_repair",immuneWith:"saf_ace",     blocksRoll:true,  count:3 },
+  { id:"haz_stop",     name:"Stop",        type:"hazard", remediedBy:"rem_go",    immuneWith:"saf_row",     blocksRoll:true,  count:5 },
+  { id:"haz_speed",    name:"Speed Limit", type:"hazard", remediedBy:"rem_speed", immuneWith:"saf_row",     blocksRoll:false, count:4 },
+
+  // Remedies
+  { id:"rem_gas",    name:"Gasoline",          type:"remedy", fixes:"haz_gas",      count:6 },
+  { id:"rem_tire",   name:"Spare Tire",        type:"remedy", fixes:"haz_tire",     count:6 },
+  { id:"rem_repair", name:"Repairs",           type:"remedy", fixes:"haz_accident", count:6 },
+  { id:"rem_go",     name:"Go!",               type:"remedy", fixes:"haz_stop",     isGo:true, count:14 },
+  { id:"rem_speed",  name:"End Speed Limit",   type:"remedy", fixes:"haz_speed",    count:6 },
+
+  // Safeties
+  { id:"saf_tank",  name:"Extra Tank",      type:"safety", immunizes:["haz_gas"],             coupBonus:300, count:1 },
+  { id:"saf_proof", name:"Puncture-Proof",  type:"safety", immunizes:["haz_tire"],            coupBonus:300, count:1 },
+  { id:"saf_ace",   name:"Driving Ace",     type:"safety", immunizes:["haz_accident"],        coupBonus:300, count:1 },
+  { id:"saf_row",   name:"Right of Way",    type:"safety", immunizes:["haz_stop","haz_speed"],coupBonus:300, count:1, grantsGo:true },
+];
+
+const CARD_MAP = {};
+CARD_DEFS.forEach(c => CARD_MAP[c.id] = c);
+
+const WIN_DISTANCE = 1000;
+
+const FAMILY_NAMES = ["The Hendersons", "The Garcias", "The Kowalskis"];
+
+const ICONS = {
+  "25 Miles":"🛣️","50 Miles":"🚗","75 Miles":"🏎️","100 Miles":"💨","200 Miles":"🚀",
+  "Out of Gas":"⛽","Flat Tire":"🔧","Accident":"💥","Stop":"🛑","Speed Limit":"🐌",
+  "Gasoline":"⛽","Spare Tire":"🔧","Repairs":"🔩","Go!":"🟢","End Speed Limit":"💨",
+  "Extra Tank":"🛢️","Puncture-Proof":"🛡️","Driving Ace":"🎖️","Right of Way":"👑",
+};
+
+const EMOJI_OPTIONS = ["👍","😂","💀","🔥","😤","🙏"];
+
+function uid() { return Math.random().toString(36).slice(2,9); }
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// ═══════════════════════════════════════════════════
+// GAME ENGINE — pure functions
+// ═══════════════════════════════════════════════════
+
+function buildDeck() {
+  var deck = [];
+  CARD_DEFS.forEach(function(def) {
+    for (var i = 0; i < def.count; i++) {
+      deck.push({ id: def.id, name: def.name, type: def.type, value: def.value || 0, uid: uid() });
+    }
+  });
+  // Fisher-Yates shuffle
+  for (var i = deck.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
+  }
+  return deck;
+}
+
+function createPlayer(id, name, isHuman) {
+  return {
+    id: id,
+    name: name,
+    isHuman: isHuman,
+    hand: [],
+    distance: 0,
+    hazard: null,       // one active hazard id (not counting speed limit)
+    speedLimit: false,
+    safeties: [],       // array of safety card ids played
+    isRolling: false,   // needs a Go card to start moving
+  };
+}
+
+function createGame() {
+  var deck = buildDeck();
+  var players = [
+    createPlayer("p0", "You", true),
+    createPlayer("p1", FAMILY_NAMES[0], false),
+    createPlayer("p2", FAMILY_NAMES[1], false),
+  ];
+
+  // Deal 6 cards each — guarantee at least one Go in human hand
+  players.forEach(function(p) {
+    for (var i = 0; i < 6; i++) { p.hand.push(deck.pop()); }
+    // Ensure human gets a Go card
+    if (p.isHuman) {
+      var hasGo = p.hand.some(function(c) { return CARD_MAP[c.id].isGo; });
+      if (!hasGo) {
+        var goIdx = deck.findIndex(function(c) { return CARD_MAP[c.id].isGo; });
+        if (goIdx >= 0) {
+          var discard = p.hand.pop();
+          deck.unshift(discard);
+          p.hand.push(deck.splice(goIdx, 1)[0]);
+        }
+      }
+    }
+  });
+
+  return {
+    phase: "draw",
+    deck: deck,
+    discard: [],
+    players: players,
+    currentPlayerIndex: 0,
+    winner: null,
+    log: [],
+    _coupState: null,
+    _toastCard: null,
+    _lastEvent: null,
+  };
+}
+
+function cloneState(s) {
+  return JSON.parse(JSON.stringify(s));
+}
+
+// ── CAN PLAY ──────────────────────────────────────
+
+function isImmune(player, hazardId) {
+  return player.safeties.some(function(sid) {
+    var def = CARD_MAP[sid];
+    return def && def.immunizes && def.immunizes.indexOf(hazardId) >= 0;
+  });
+}
+
+function canPlayDistance(player, card) {
+  if (!player.isRolling) return { ok: false, reason: "Need a Go card first" };
+  if (player.hazard) return { ok: false, reason: "Fix your hazard first" };
+  if (player.speedLimit && card.value > 50) return { ok: false, reason: "Speed limit — 50 miles max" };
+  return { ok: true };
+}
+
+function canPlayRemedy(player, card) {
+  var def = CARD_MAP[card.id];
+  if (def.isGo) {
+    if (player.isRolling && !player.hazard) return { ok: false, reason: "Already rolling" };
+    if (player.hazard && player.hazard !== "haz_stop") return { ok: false, reason: "Wrong remedy for this hazard" };
+    return { ok: true };
+  }
+  if (!def.fixes) return { ok: false, reason: "Nothing to fix" };
+  if (player.hazard !== def.fixes) return { ok: false, reason: "Wrong remedy" };
+  return { ok: true };
+}
+
+function canPlayHazardOn(target, card) {
+  var def = CARD_MAP[card.id];
+  if (isImmune(target, card.id)) return { ok: false, reason: "They're immune" };
+  if (def.id === "haz_speed") {
+    if (target.speedLimit) return { ok: false, reason: "Already speed limited" };
+    return { ok: true };
+  }
+  if (target.hazard) return { ok: false, reason: "Already has a hazard" };
+  return { ok: true };
+}
+
+// ── PLAY ──────────────────────────────────────────
+
+function removeFromHand(hand, idx) {
+  return hand.slice(0, idx).concat(hand.slice(idx + 1));
+}
+
+function playDistance(s, playerId, cardIdx) {
+  var ns = cloneState(s);
+  var p = ns.players.find(function(x) { return x.id === playerId; });
+  var card = p.hand[cardIdx];
+  var check = canPlayDistance(p, card);
+  if (!check.ok) return s;
+  p.hand = removeFromHand(p.hand, cardIdx);
+  ns.discard.push(card);
+  p.distance += card.value;
+  var who = p.isHuman ? "You" : p.name;
+  ns.log.push({ type:"action", key:"played_distance", args:[who, card.name, p.distance] });
+  if (!p.isHuman) ns._toastCard = { card: card, playerName: p.name };
+  ns._lastEvent = { type:"node", playerId: playerId, value: card.value, newDist: p.distance };
+  if (p.distance >= WIN_DISTANCE) {
+    ns.phase = "gameOver";
+    ns.winner = playerId;
+    ns.log.push({ type:"win", key:"winner", args:[who, p.distance] });
+  }
+  return ns;
+}
+
+function playRemedy(s, playerId, cardIdx) {
+  var ns = cloneState(s);
+  var p = ns.players.find(function(x) { return x.id === playerId; });
+  var card = p.hand[cardIdx];
+  var def = CARD_MAP[card.id];
+  var check = canPlayRemedy(p, card);
+  if (!check.ok) return s;
+  p.hand = removeFromHand(p.hand, cardIdx);
+  ns.discard.push(card);
+  if (def.isGo) {
+    p.isRolling = true;
+    p.hazard = null;
+    var who = p.isHuman ? "You" : p.name;
+    ns.log.push({ type:"roll", key:"played_go", args:[who] });
+  } else {
+    p.hazard = null;
+    p.isRolling = true;
+    var who = p.isHuman ? "You" : p.name;
+    ns.log.push({ type:"remedy", key:"played_remedy", args:[who, card.name] });
+  }
+  if (!p.isHuman) ns._toastCard = { card: card, playerName: p.name };
+  return ns;
+}
+
+function playSpeedRemedy(s, playerId, cardIdx) {
+  var ns = cloneState(s);
+  var p = ns.players.find(function(x) { return x.id === playerId; });
+  var card = p.hand[cardIdx];
+  var def = CARD_MAP[card.id];
+  if (def.id !== "rem_speed" || !p.speedLimit) return s;
+  p.hand = removeFromHand(p.hand, cardIdx);
+  ns.discard.push(card);
+  p.speedLimit = false;
+  var who = p.isHuman ? "You" : p.name;
+  ns.log.push({ type:"remedy", key:"played_remedy", args:[who, card.name] });
+  if (!p.isHuman) ns._toastCard = { card: card, playerName: p.name };
+  return ns;
+}
+
+function playHazard(s, playerId, cardIdx, targetId) {
+  var ns = cloneState(s);
+  var p = ns.players.find(function(x) { return x.id === playerId; });
+  var target = ns.players.find(function(x) { return x.id === targetId; });
+  var card = p.hand[cardIdx];
+  var def = CARD_MAP[card.id];
+  var check = canPlayHazardOn(target, card);
+  if (!check.ok) return s;
+  p.hand = removeFromHand(p.hand, cardIdx);
+  ns.discard.push(card);
+  if (def.id === "haz_speed") {
+    target.speedLimit = true;
+  } else {
+    target.hazard = def.id;
+    target.isRolling = false;
+  }
+  var who = p.isHuman ? "You" : p.name;
+  var tgt = target.isHuman ? "you" : target.name;
+  ns.log.push({ type:"hazard", key:"played_hazard", args:[who, card.name, tgt] });
+  if (!p.isHuman) ns._toastCard = { card: card, playerName: p.name };
+  ns._lastEvent = { type:"hazard", playerId: playerId, targetId: targetId, hazardId: def.id };
+  // Check Coup Fourré
+  var matchingSafety = target.hand.find(function(c) {
+    var sd = CARD_MAP[c.id];
+    return sd && sd.type === "safety" && sd.immunizes && sd.immunizes.indexOf(def.id) >= 0;
+  });
+  if (matchingSafety) {
+    ns._coupState = { originatorId: playerId, targetId: targetId, hazardCardId: def.id, safetyCardId: matchingSafety.id, safetyCardUid: matchingSafety.uid };
+    ns.phase = "coupFourre";
+  }
+  return ns;
+}
+
+function playSafety(s, playerId, cardIdx) {
+  var ns = cloneState(s);
+  var p = ns.players.find(function(x) { return x.id === playerId; });
+  var card = p.hand[cardIdx];
+  var def = CARD_MAP[card.id];
+  p.hand = removeFromHand(p.hand, cardIdx);
+  ns.discard.push(card);
+  p.safeties.push(card.id);
+  // Remove any matching hazard
+  if (def.immunizes) {
+    def.immunizes.forEach(function(hid) {
+      if (p.hazard === hid) { p.hazard = null; p.isRolling = true; }
+      if (hid === "haz_speed" && p.speedLimit) { p.speedLimit = false; }
+    });
+  }
+  // Right of Way also grants rolling
+  if (def.grantsGo) { p.isRolling = true; }
+  var who = p.isHuman ? "You" : p.name;
+  ns.log.push({ type:"safety", key:"played_safety", args:[who, card.name] });
+  if (!p.isHuman) ns._toastCard = { card: card, playerName: p.name };
+  ns._lastEvent = { type:"safety", playerId: playerId };
+  return ns;
+}
+
+function drawCard(s, playerId) {
+  var ns = cloneState(s);
+  var p = ns.players.find(function(x) { return x.id === playerId; });
+  if (ns.deck.length === 0) {
+    // Reshuffle discard
+    ns.deck = ns.discard.slice(0, ns.discard.length - 1);
+    for (var i = ns.deck.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = ns.deck[i]; ns.deck[i] = ns.deck[j]; ns.deck[j] = tmp;
+    }
+    ns.discard = ns.discard.slice(-1);
+  }
+  if (ns.deck.length > 0) {
+    p.hand.push(ns.deck.pop());
+  }
+  ns.phase = "play";
+  return ns;
+}
+
+function discardCard(s, playerId, cardIdx) {
+  var ns = cloneState(s);
+  var p = ns.players.find(function(x) { return x.id === playerId; });
+  var card = p.hand[cardIdx];
+  p.hand = removeFromHand(p.hand, cardIdx);
+  ns.discard.push(card);
+  var who = p.isHuman ? "You" : p.name;
+  ns.log.push({ type:"action", key:"discarded", args:[who, card.name] });
+  return ns;
+}
+
+function advanceTurn(s) {
+  var ns = cloneState(s);
+  ns.phase = "draw";
+  ns._toastCard = null;
+  var n = ns.players.length;
+  ns.currentPlayerIndex = (ns.currentPlayerIndex + 1) % n;
+  return ns;
+}
+
+function resolveCoupFourre(s, accept) {
+  var ns = cloneState(s);
+  var cf = ns._coupState;
+  ns._coupState = null;
+  var target = ns.players.find(function(p) { return p.id === cf.targetId; });
+  if (accept) {
+    // Play the safety, remove hazard, get bonus, go to front of turn order
+    var safetyIdx = target.hand.findIndex(function(c) { return c.uid === cf.safetyCardUid; });
+    if (safetyIdx >= 0) {
+      var safetyCard = target.hand[safetyIdx];
+      var def = CARD_MAP[safetyCard.id];
+      target.hand = removeFromHand(target.hand, safetyIdx);
+      ns.discard.push(safetyCard);
+      target.safeties.push(safetyCard.id);
+      target.hazard = null;
+      target.isRolling = true;
+      if (def.immunizes && def.immunizes.indexOf("haz_speed") >= 0) target.speedLimit = false;
+      target.distance += def.coupBonus || 300;
+      ns.log.push({ type:"safety", key:"coup_fourre", args:[target.isHuman ? "You" : target.name, def.coupBonus || 300] });
+      if (target.distance >= WIN_DISTANCE) {
+        ns.phase = "gameOver";
+        ns.winner = target.id;
+        ns.log.push({ type:"win", key:"winner", args:[target.isHuman ? "You" : target.name, target.distance] });
+        return ns;
+      }
+      // Target goes next
+      ns.currentPlayerIndex = ns.players.findIndex(function(p) { return p.id === cf.targetId; });
+    }
+  }
+  ns.phase = "draw";
+  return ns;
+}
+
+// ── AI TURN ──────────────────────────────────────
+
+function aiTurn(s, playerId) {
+  var ns = drawCard(s, playerId);
+  var p = ns.players.find(function(x) { return x.id === playerId; });
+  var others = ns.players.filter(function(x) { return x.id !== playerId; });
+
+  // Priority 1: Play a safety if we have one
+  var safetyIdx = p.hand.findIndex(function(c) { return c.type === "safety"; });
+  if (safetyIdx >= 0) return advanceTurn(playSafety(ns, playerId, safetyIdx));
+
+  // Priority 2: Fix our own hazard
+  if (p.hazard) {
+    var def = CARD_MAP[p.hazard];
+    var remedyIdx = p.hand.findIndex(function(c) { return CARD_MAP[c.id].fixes === p.hazard; });
+    if (remedyIdx >= 0) return advanceTurn(playRemedy(ns, playerId, remedyIdx));
+    // Discard least useful card
+    var discardIdx = findDiscardIdx(p, ns);
+    return advanceTurn(discardCard(ns, playerId, discardIdx));
+  }
+
+  // Priority 3: Fix speed limit
+  if (p.speedLimit) {
+    var speedIdx = p.hand.findIndex(function(c) { return c.id === "rem_speed"; });
+    if (speedIdx >= 0) return advanceTurn(playSpeedRemedy(ns, playerId, speedIdx));
+  }
+
+  // Priority 4: Play Go if not rolling
+  if (!p.isRolling) {
+    var goIdx = p.hand.findIndex(function(c) { return CARD_MAP[c.id].isGo; });
+    if (goIdx >= 0) return advanceTurn(playRemedy(ns, playerId, goIdx));
+    var discardIdx = findDiscardIdx(p, ns);
+    return advanceTurn(discardCard(ns, playerId, discardIdx));
+  }
+
+  // Priority 5: Play best distance card
+  var distCards = p.hand
+    .map(function(c, i) { return { c: c, i: i }; })
+    .filter(function(x) { return x.c.type === "node" && canPlayDistance(p, x.c).ok; })
+    .sort(function(a, b) { return b.c.value - a.c.value; });
+  if (distCards.length > 0) return advanceTurn(playDistance(ns, playerId, distCards[0].i));
+
+  // Priority 6: Play hazard on closest opponent
+  var hazardCards = p.hand.filter(function(c) { return c.type === "hazard"; });
+  if (hazardCards.length > 0) {
+    var sorted = others.slice().sort(function(a, b) { return b.distance - a.distance; });
+    for (var i = 0; i < sorted.length; i++) {
+      for (var j = 0; j < p.hand.length; j++) {
+        if (p.hand[j].type !== "hazard") continue;
+        var check = canPlayHazardOn(sorted[i], p.hand[j]);
+        if (check.ok) return advanceTurn(playHazard(ns, playerId, j, sorted[i].id));
+      }
+    }
+  }
+
+  // Priority 7: Discard
+  var discardIdx = findDiscardIdx(p, ns);
+  return advanceTurn(discardCard(ns, playerId, discardIdx));
+}
+
+function findDiscardIdx(p, s) {
+  // Discard duplicates, then least useful
+  var seen = {};
+  for (var i = 0; i < p.hand.length; i++) {
+    var id = p.hand[i].id;
+    if (seen[id] !== undefined) return i;
+    seen[id] = i;
+  }
+  // Discard remedies we don't need
+  for (var i = 0; i < p.hand.length; i++) {
+    var def = CARD_MAP[p.hand[i].id];
+    if (def.type === "remedy" && !def.isGo) return i;
+  }
+  return 0;
+}
+
+// ── LOG RENDERING ──────────────────────────────────
+
+var LOG_TEMPLATES = {
+  played_distance: function(who, card, dist) { return who + " played " + card + " — " + dist + " miles total"; },
+  played_go: function(who) { return who + " played Go — hitting the road!"; },
+  played_remedy: function(who, card) { return who + " played " + card; },
+  played_hazard: function(who, card, tgt) { return who + " played " + card + " on " + tgt + "!"; },
+  played_safety: function(who, card) { return who + " played " + card + "!"; },
+  discarded: function(who, card) { return who + " discarded " + card; },
+  winner: function(who, dist) { return who + " made it to Wallyworld! (" + dist + " miles)"; },
+  coup_fourre: function(who, bonus) { return who + " — COUP FOURRÉ! +" + bonus + " miles!"; },
+};
+
+function renderLog(entry) {
+  if (typeof entry === "string") return entry;
+  var fn = LOG_TEMPLATES[entry.key];
+  if (fn) return fn.apply(null, entry.args || []);
+  return entry.key;
+}
+
+function logClass(entry) {
+  if (typeof entry === "string") return "log-entry";
+  var t = entry.type || "";
+  if (t === "win") return "log-entry win";
+  if (t === "hazard") return "log-entry hazard";
+  if (t === "remedy") return "log-entry remedy";
+  if (t === "safety") return "log-entry safety";
+  if (t === "roll") return "log-entry roll";
+  return "log-entry";
+}
+
+// ═══════════════════════════════════════════════════
+// REACT COMPONENTS
+// ═══════════════════════════════════════════════════
+
+function CardComp(props) {
+  var card = props.card;
+  var def = CARD_MAP[card.id];
+  var cls = "card " + card.type + (props.selected ? " selected" : "") + (props.unplayable ? " unplayable" : "");
+  return (
+    <div className={cls} onClick={props.onClick}>
+      <div className="card-name">{card.name}</div>
+      <div className="card-icon">{ICONS[card.name] || "🚗"}</div>
+      <div className="card-value">{card.value ? "+" + card.value : (def.isGo ? "GO" : "")}</div>
+    </div>
+  );
+}
+
+function FamilyConvoyGame() {
+  var _gs = useState(function() { return createGame(); });
+  var gs = _gs[0]; var setGs = _gs[1];
+  var _sel = useState(null);
+  var selectedCard = _sel[0]; var setSelectedCard = _sel[1];
+  var _tgt = useState(null);
+  var selectedTarget = _tgt[0]; var setSelectedTarget = _tgt[1];
+  var _ai = useState(false);
+  var aiThinking = _ai[0]; var setAiThinking = _ai[1];
+  var _splash = useState(true);
+  var showSplash = _splash[0]; var setShowSplash = _splash[1];
+  var _toast = useState(null);
+  var toastCard = _toast[0]; var setToastCard = _toast[1];
+  var _phaseFlash = useState(false);
+  var phaseFlash = _phaseFlash[0]; var setPhaseFlash = _phaseFlash[1];
+  var toastTimer = useRef(null);
+  var prevPhase = useRef(gs.phase);
+  var logRef = useRef(null);
+
+  var me = gs.players[0];
+  var current = gs.players[gs.currentPlayerIndex];
+  var isMyTurn = current.id === me.id;
+  var opponents = gs.players.slice(1);
+
+  // Auto-scroll log
+  useEffect(function() {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  });
+
+  // Phase flash
+  useEffect(function() {
+    if (prevPhase.current !== gs.phase && gs.phase !== "gameOver") {
+      setPhaseFlash(true);
+      var t = setTimeout(function() { setPhaseFlash(false); }, 600);
+      prevPhase.current = gs.phase;
+      return function() { clearTimeout(t); };
+    }
+    prevPhase.current = gs.phase;
+  }, [gs.phase]);
+
+  // Card toast
+  useEffect(function() {
+    if (!gs._toastCard) return;
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToastCard(gs._toastCard);
+    toastTimer.current = setTimeout(function() { setToastCard(null); }, 1800);
+  }, [gs._toastCard ? gs._toastCard.card.uid : ""]);
+
+  // AI turns
+  useEffect(function() {
+    if (gs.phase === "gameOver" || gs.phase === "coupFourre") return;
+    if (isMyTurn) return;
+    if (showSplash) return;
+    setAiThinking(true);
+    var timer = setTimeout(function() {
+      setGs(function(prev) {
+        var s = cloneState(prev);
+        var safety = 0;
+        while (s.phase !== "gameOver" && s.players[s.currentPlayerIndex].id !== me.id && s.phase !== "coupFourre" && safety < 20) {
+          s = aiTurn(s, s.players[s.currentPlayerIndex].id);
+          safety++;
+        }
+        return s;
+      });
+      setAiThinking(false);
+      setSelectedCard(null);
+      setSelectedTarget(null);
+    }, 900);
+    return function() { clearTimeout(timer); };
+  }, [gs.currentPlayerIndex, gs.phase, showSplash]);
+
+  // ── HANDLERS ──────────────────────────────────
+
+  function handleDraw() {
+    if (!isMyTurn || gs.phase !== "draw") return;
+    setGs(drawCard(gs, me.id));
+    setSelectedCard(null);
+    setSelectedTarget(null);
+  }
+
+  function handleCardClick(idx) {
+    if (!isMyTurn || gs.phase !== "play") {
+      if (gs.phase === "draw") setGs(Object.assign({}, gs, { log: gs.log.concat([{ type:"action", key:"draw_first", args:[] }]) }));
+      return;
+    }
+    if (selectedCard === idx) { setSelectedCard(null); setSelectedTarget(null); return; }
+    setSelectedCard(idx);
+    setSelectedTarget(null);
+  }
+
+  function handleConfirmPlay() {
+    if (selectedCard === null || !isMyTurn || gs.phase !== "play") return;
+    var card = me.hand[selectedCard];
+    if (!card) return;
+    var def = CARD_MAP[card.id];
+    var ns = gs;
+
+    if (card.type === "node") {
+      if (!canPlayDistance(me, card).ok) return;
+      ns = playDistance(gs, me.id, selectedCard);
+    } else if (card.type === "remedy") {
+      if (def.id === "rem_speed") {
+        if (!me.speedLimit) return;
+        ns = playSpeedRemedy(gs, me.id, selectedCard);
+      } else {
+        if (!canPlayRemedy(me, card).ok) return;
+        ns = playRemedy(gs, me.id, selectedCard);
+      }
+    } else if (card.type === "safety") {
+      ns = playSafety(gs, me.id, selectedCard);
+    } else {
+      return;
+    }
+
+    if (ns.phase === "gameOver") { setGs(ns); }
+    else if (ns.phase === "coupFourre") { setGs(ns); }
+    else { setGs(advanceTurn(ns)); }
+    setSelectedCard(null); setSelectedTarget(null);
+  }
+
+  function handleTargetClick(targetId) {
+    if (selectedCard === null) return;
+    var card = me.hand[selectedCard];
+    if (!card || card.type !== "hazard") return;
+    var target = gs.players.find(function(p) { return p.id === targetId; });
+    if (!target || !canPlayHazardOn(target, card).ok) return;
+    var ns = playHazard(gs, me.id, selectedCard, targetId);
+    if (ns.phase === "gameOver" || ns.phase === "coupFourre") { setGs(ns); }
+    else { setGs(advanceTurn(ns)); }
+    setSelectedCard(null); setSelectedTarget(null);
+  }
+
+  function handleDiscard() {
+    if (selectedCard === null || !isMyTurn || gs.phase !== "play") return;
+    setGs(advanceTurn(discardCard(gs, me.id, selectedCard)));
+    setSelectedCard(null); setSelectedTarget(null);
+  }
+
+  function handleCoupFourre(accept) {
+    var ns = resolveCoupFourre(gs, accept);
+    if (ns.phase === "gameOver") { setGs(ns); }
+    else { setGs(ns); }
+  }
+
+  function handleNewGame() {
+    setGs(createGame());
+    setSelectedCard(null); setSelectedTarget(null);
+  }
+
+  function getPlayability(card) {
+    if (gs.phase !== "play" || !isMyTurn) return false;
+    var def = CARD_MAP[card.id];
+    if (card.type === "node") return canPlayDistance(me, card).ok;
+    if (card.type === "remedy") {
+      if (def.id === "rem_speed") return me.speedLimit;
+      return canPlayRemedy(me, card).ok;
+    }
+    if (card.type === "safety") return true;
+    if (card.type === "hazard") return true;
+    return false;
+  }
+
+  var selCardObj = selectedCard !== null ? me.hand[selectedCard] : null;
+
+  function phaseLabel() {
+    if (gs.phase === "coupFourre") return "COUP FOURRÉ";
+    if (gs.phase === "draw") return "DRAW";
+    if (gs.phase === "play") return "PLAY";
+    if (gs.phase === "gameOver") return "FINISH LINE";
+    return gs.phase.toUpperCase();
+  }
+
+  function turnLabel() {
+    if (gs.phase === "gameOver") return "RACE OVER";
+    if (aiThinking) return current.name + " driving...";
+    if (isMyTurn) return "YOUR TURN";
+    return "WAITING";
+  }
+
+  // ── RENDER ────────────────────────────────────
+
+  return (
+    <div className="game-container">
+
+      {/* Header */}
+      <div className="header">
+        <div className="game-title">Family Convoy</div>
+        <div className="header-info">
+          <span className={"phase-tag " + gs.phase + (phaseFlash ? " flash" : "")}>{phaseLabel()}</span>
+          <span className={"turn-tag " + (isMyTurn ? "yours" : "")}>{turnLabel()}</span>
+        </div>
+      </div>
+
+      {/* Main */}
+      <div className="game-main">
+
+        {/* Opponents */}
+        <div className="opponents-col">
+          {opponents.map(function(opp) {
+            return (
+              <div key={opp.id}
+                className={"opp" + (selectedTarget === opp.id ? " target-selected" : "")}
+                onClick={function() { handleTargetClick(opp.id); }}
+              >
+                <div className="opp-name">{opp.name}</div>
+                <div className="opp-dist">{opp.distance.toLocaleString()}</div>
+                <div className="opp-dist-label">miles</div>
+                <div className="opp-bar"><div className="opp-bar-fill" style={{width: Math.min(100, opp.distance / WIN_DISTANCE * 100) + "%"}} /></div>
+                <div className="opp-status">
+                  {opp.isRolling && !opp.hazard && <span className="badge rolling">rolling</span>}
+                  {!opp.isRolling && !opp.hazard && <span className="badge stopped">stopped</span>}
+                  {opp.hazard && <span className="badge hazard">{CARD_MAP[opp.hazard] ? CARD_MAP[opp.hazard].name : opp.hazard}</span>}
+                  {opp.speedLimit && <span className="badge speed">speed limit</span>}
+                  {opp.safeties.map(function(sid, i) { return <span key={i} className="badge safety">{CARD_MAP[sid] ? CARD_MAP[sid].name : sid}</span>; })}
+                </div>
+                <div className="opp-hand-ct">{opp.hand.length} cards</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Center */}
+        <div className="center-col">
+          <div className="my-zone">
+            <div className="dist-label">Miles Traveled</div>
+            <div className="dist-value">{me.distance.toLocaleString()}</div>
+            <div className="dist-unit">of {WIN_DISTANCE.toLocaleString()} miles to Wallyworld</div>
+            <div className="dist-bar"><div className="dist-bar-fill" style={{width: Math.min(100, me.distance / WIN_DISTANCE * 100) + "%"}} /></div>
+            <div className="my-status">
+              {me.isRolling && !me.hazard && <span className="badge rolling">rolling</span>}
+              {!me.isRolling && !me.hazard && <span className="badge stopped">need Go card</span>}
+              {me.hazard && <span className="badge hazard">{CARD_MAP[me.hazard] ? CARD_MAP[me.hazard].name : me.hazard}</span>}
+              {me.speedLimit && <span className="badge speed">speed limit</span>}
+              {me.safeties.map(function(sid, i) { return <span key={i} className="badge safety">{CARD_MAP[sid] ? CARD_MAP[sid].name : sid}</span>; })}
+            </div>
+          </div>
+
+          <div className="log-box" ref={logRef}>
+            {gs.log.map(function(entry, i) {
+              return <div key={i} className={logClass(entry)}>{renderLog(entry)}</div>;
+            })}
+            {gs.log.length === 0 && <div className="log-entry">Draw a card to hit the road!</div>}
+          </div>
+        </div>
+
+        {/* Right */}
+        <div className="right-col">
+          <div className="deck-zone">
+            <div className="deck-label">Draw Pile</div>
+            <div
+              className={"deck-visual" + (isMyTurn && gs.phase === "draw" ? " clickable" : "")}
+              onClick={handleDraw}
+            >
+              {isMyTurn && gs.phase === "draw" ? "DRAW" : gs.deck.length}
+            </div>
+          </div>
+
+          <div className="deck-zone">
+            <div className="deck-label">Discard</div>
+            {gs.discard.length > 0 ? (
+              <div className="discard-top" style={{borderColor: gs.discard[gs.discard.length-1].type === "hazard" ? "#e03030" : gs.discard[gs.discard.length-1].type === "node" ? "#ffb81e" : gs.discard[gs.discard.length-1].type === "remedy" ? "#30c060" : "#60aaff"}}>
+                <div style={{fontSize:"20px"}}>{ICONS[gs.discard[gs.discard.length-1].name] || "🚗"}</div>
+                <div style={{fontSize:"9px",textTransform:"uppercase"}}>{gs.discard[gs.discard.length-1].name}</div>
+                <div style={{fontSize:"9px",color:"#5a4a30"}}>{gs.discard.length} total</div>
+              </div>
+            ) : (
+              <div className="discard-top" style={{color:"#3a2a10"}}>empty</div>
+            )}
+          </div>
+
+          <div className="action-buttons">
+            <button className="btn btn-discard" onClick={handleDiscard} disabled={selectedCard === null || !isMyTurn || gs.phase !== "play"}>
+              Discard
+            </button>
+            <button className="btn btn-new" onClick={handleNewGame}>
+              New Race
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Prompt bar */}
+      {selCardObj && gs.phase === "play" && isMyTurn && (
+        <div className="prompt-bar">
+          {selCardObj.type === "hazard" ? (
+            <span style={{color:"#ff6060",fontSize:"13px",fontWeight:800}}>
+              🎯 Click a family to play {selCardObj.name} on them
+            </span>
+          ) : (
+            <>
+              <span style={{color: selCardObj.type === "node" ? "#ffb81e" : selCardObj.type === "remedy" ? "#60cc80" : "#60aaff", fontSize:"13px",fontWeight:800}}>
+                Play {selCardObj.name}{selCardObj.value ? " (+" + selCardObj.value + " miles)" : ""}?
+              </span>
+              <button className="btn btn-play" onClick={handleConfirmPlay} style={{padding:"5px 18px",fontSize:"12px"}}>OK</button>
+              <button className="btn btn-cancel" onClick={function(){ setSelectedCard(null); }} style={{padding:"5px 18px",fontSize:"12px"}}>Cancel</button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Hand */}
+      <div className="hand-container">
+        <div className="hand">
+          {me.hand.map(function(card, idx) {
+            var playable = getPlayability(card);
+            return (
+              <div key={card.uid || idx} className="hand-slot">
+                <CardComp
+                  card={card}
+                  selected={selectedCard === idx}
+                  unplayable={gs.phase === "play" && isMyTurn && !playable && card.type !== "hazard"}
+                  onClick={function() { handleCardClick(idx); }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Card Toast */}
+      {toastCard && (function() {
+        var c = toastCard.card;
+        var color = c.type === "node" ? "#ffb81e" : c.type === "hazard" ? "#e03030" : c.type === "remedy" ? "#30c060" : "#60aaff";
+        return (
+          <div className="card-toast">
+            <div className="card-toast-inner" style={{borderColor: color, color: color}}>
+              <div className="card-toast-agent">{toastCard.playerName}</div>
+              <div className="card-toast-icon">{ICONS[c.name] || "🚗"}</div>
+              <div className="card-toast-name" style={{color: color}}>{c.name}</div>
+              <div className="card-toast-value">{c.value ? "+" + c.value : ""}</div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Coup Fourré overlay */}
+      {gs.phase === "coupFourre" && gs._coupState && gs._coupState.targetId === me.id && (
+        <div className="overlay">
+          <div className="coup-title">Coup Fourré! 🚨</div>
+          <div className="coup-sub">
+            {gs.players.find(function(p){return p.id===gs._coupState.originatorId;}).name} played {CARD_MAP[gs._coupState.hazardCardId].name} on you — but you have {CARD_MAP[gs._coupState.safetyCardId].name} in your hand!
+          </div>
+          <div className="coup-sub" style={{color:"#60aaff"}}>
+            Counter it for +{CARD_MAP[gs._coupState.safetyCardId].coupBonus} bonus miles and take the next turn?
+          </div>
+          <div className="coup-actions">
+            <button className="btn btn-counter" onClick={function(){ handleCoupFourre(true); }}>Counter It! 🛡️</button>
+            <button className="btn btn-decline" onClick={function(){ handleCoupFourre(false); }}>Decline</button>
+          </div>
+        </div>
+      )}
+
+      {/* Splash */}
+      {showSplash && (
+        <div className="overlay">
+          <div className="splash-title">Family<br/>Convoy</div>
+          <div className="splash-sub">Race 1,000 miles to Wallyworld before the other families get there first.</div>
+          <div className="road-stripe" style={{width:"320px"}} />
+          <div className="splash-rules">
+            <div className="rule-card"><span>🟢 Go Card</span>You need a Go card before you can play any distance cards.</div>
+            <div className="rule-card"><span>🐌 Speed Limit</span>Limits you to 50 miles per turn until you play End Speed Limit.</div>
+            <div className="rule-card"><span>🛡️ Safeties</span>Permanent protection. Play them any time — even during someone's attack (Coup Fourré).</div>
+            <div className="rule-card"><span>🚨 One Hazard</span>Only one hazard per family at a time. Spread the misery.</div>
+          </div>
+          <button className="btn-start" onClick={function(){ setShowSplash(false); }}>Hit the Road!</button>
+        </div>
+      )}
+
+      {/* Win overlay */}
+      {gs.phase === "gameOver" && (
+        <div className="overlay">
+          <div className="win-title">
+            {gs.winner === me.id ? "🎉 WALLYWORLD!" : "😭 They Beat You!"}
+          </div>
+          <div style={{fontSize:"60px"}}>{gs.winner === me.id ? "🎢" : "🚗"}</div>
+          <div className="win-sub">
+            {gs.winner === me.id
+              ? "You made it in " + me.distance + " miles!"
+              : gs.players.find(function(p){return p.id===gs.winner;}).name + " arrived first at " + gs.players.find(function(p){return p.id===gs.winner;}).distance + " miles."}
+          </div>
+          <button className="btn-start" onClick={handleNewGame} style={{marginTop:"8px"}}>Race Again</button>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+ReactDOM.render(<FamilyConvoyGame />, document.getElementById("root"));
+</script>
+</body>
+</html>
