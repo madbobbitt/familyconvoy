@@ -360,6 +360,68 @@
   .btn-new { background: rgba(255,180,30,0.15); color: #ffb81e; border: 1px solid rgba(255,180,30,0.3); }
   .btn-new:hover { background: rgba(255,180,30,0.25); }
 
+  .btn-rules { background: rgba(100,160,255,0.1); color: #90c0ff; border: 1px solid rgba(100,160,255,0.25); }
+  .btn-rules:hover { background: rgba(100,160,255,0.2); }
+
+  /* ── RULES MODAL ── */
+  .rules-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.75);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .rules-modal {
+    background: #1e1206;
+    border: 1px solid rgba(255,180,30,0.35);
+    border-radius: 14px;
+    padding: 24px 28px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    color: #f0e6d0;
+    font-family: 'Nunito', sans-serif;
+  }
+  .rules-modal h2 {
+    font-family: 'Luckiest Guy', cursive;
+    color: #ffb81e;
+    font-size: 24px;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .rules-modal h3 {
+    color: #ffb81e;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 14px 0 6px;
+  }
+  .rules-modal p, .rules-modal li {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #d0c4a8;
+  }
+  .rules-modal ul { padding-left: 18px; }
+  .rules-modal li { margin-bottom: 4px; }
+  .rules-close {
+    display: block;
+    margin: 20px auto 0;
+    background: rgba(255,180,30,0.15);
+    color: #ffb81e;
+    border: 1px solid rgba(255,180,30,0.35);
+    border-radius: 8px;
+    padding: 9px 28px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .rules-close:hover { background: rgba(255,180,30,0.28); }
+
   .btn-play { background: rgba(60,180,60,0.25); color: #60e060; border: 1px solid rgba(60,180,60,0.4); }
   .btn-play:hover { background: rgba(60,180,60,0.4); }
 
@@ -1081,6 +1143,8 @@ function FamilyConvoyGame() {
   var toastCard = _toast[0]; var setToastCard = _toast[1];
   var _phaseFlash = useState(false);
   var phaseFlash = _phaseFlash[0]; var setPhaseFlash = _phaseFlash[1];
+  var _rules = useState(false);
+  var showRules = _rules[0]; var setShowRules = _rules[1];
   var toastTimer = useRef(null);
   var prevPhase = useRef(gs.phase);
   var logRef = useRef(null);
@@ -1343,6 +1407,9 @@ function FamilyConvoyGame() {
             <button className="btn btn-new" onClick={handleNewGame}>
               New Race
             </button>
+            <button className="btn btn-rules" onClick={function(){ setShowRules(true); }}>
+              How to Play
+            </button>
           </div>
         </div>
       </div>
@@ -1447,6 +1514,35 @@ function FamilyConvoyGame() {
               : gs.players.find(function(p){return p.id===gs.winner;}).name + " arrived first at " + gs.players.find(function(p){return p.id===gs.winner;}).distance + " miles."}
           </div>
           <button className="btn-start" onClick={handleNewGame} style={{marginTop:"8px"}}>Race Again</button>
+        </div>
+      )}
+
+      {/* Rules Modal */}
+      {showRules && (
+        <div className="rules-overlay" onClick={function(e){ if(e.target.className==="rules-overlay") setShowRules(false); }}>
+          <div className="rules-modal">
+            <h2>🚛 How to Play</h2>
+
+            <h3>Goal</h3>
+            <p>Be the first family to drive exactly <strong>700 miles</strong>. You play against the AI (the other family). Draw a card each turn, then play one or discard one.</p>
+
+            <h3>Card Types</h3>
+            <ul>
+              <li><strong>Mile Cards</strong> (25, 50, 75, 100, 200 mi) — Add miles to your trip. You must have a <em>Go</em> card active and no hazards to play miles. Max one 200-mile card per trip.</li>
+              <li><strong>Go</strong> — Starts your engine. Required before you can play mile cards.</li>
+              <li><strong>Hazards</strong> (Flat Tire, Out of Gas, Accident, Speed Limit, Stop) — Play these on your opponent to slow them down. They can't drive until they fix it.</li>
+              <li><strong>Remedies</strong> (Spare Tire, Gas, Repairs, End Limit, Go) — Fix a hazard on your own family. Go doubles as a remedy for Stop.</li>
+              <li><strong>Safety Cards</strong> (Puncture Proof, Extra Tank, Driving Ace, Right of Way) — Play anytime for permanent immunity against the matching hazard. Playing a safety also gives you a free extra turn.</li>
+            </ul>
+
+            <h3>Coup Fourré</h3>
+            <p>If the AI plays a hazard on you and you have the matching Safety card in hand, you can immediately play it as a <em>Coup Fourré</em> — canceling the hazard and stealing the turn.</p>
+
+            <h3>Winning</h3>
+            <p>First to hit exactly 700 miles wins. You can't overshoot — a mile card that would push you past 700 is unplayable. Plan ahead!</p>
+
+            <button className="rules-close" onClick={function(){ setShowRules(false); }}>Got It</button>
+          </div>
         </div>
       )}
 
