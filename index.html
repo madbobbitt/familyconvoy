@@ -1429,16 +1429,6 @@ function FamilyConvoyGame() {
               {lang === "en" ? "How to Play" : "วิธีเล่น"}
             </button>
           </div>
-          <div className="lang-toggle">
-            <button className={"lang-btn" + (lang === "en" ? " active" : "")} onClick={function(){ setLang("en"); }}>
-              <span className="flag">🇺🇸</span>
-              <span className="label">ENG</span>
-            </button>
-            <button className={"lang-btn" + (lang === "th" ? " active" : "")} onClick={function(){ setLang("th"); }}>
-              <span className="flag">🇹🇭</span>
-              <span className="label">THAI</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -1517,15 +1507,44 @@ function FamilyConvoyGame() {
       {showSplash && (
         <div className="overlay">
           <div className="splash-title">Family<br/>Convoy</div>
-          <div className="splash-sub">Race 1,000 miles to Wallyworld before the other families get there first.</div>
+
+          <div className="lang-toggle" style={{marginBottom:"8px"}}>
+            <button className={"lang-btn" + (lang === "en" ? " active" : "")} onClick={function(){ setLang("en"); }}>
+              <span className="flag">🇺🇸</span>
+              <span className="label">ENG</span>
+            </button>
+            <button className={"lang-btn" + (lang === "th" ? " active" : "")} onClick={function(){ setLang("th"); }}>
+              <span className="flag">🇹🇭</span>
+              <span className="label">THAI</span>
+            </button>
+          </div>
+
+          <div className="splash-sub">
+            {lang === "en"
+              ? "Race 700 miles to Wallyworld before the other family gets there first."
+              : "แข่งขับรถ 700 ไมล์ไปวอลลี่เวิลด์ให้ถึงก่อนครอบครัวอื่น"}
+          </div>
           <div className="road-stripe" style={{width:"320px"}} />
           <div className="splash-rules">
-            <div className="rule-card"><span>🟢 Go Card</span>You need a Go card before you can play any distance cards.</div>
-            <div className="rule-card"><span>🐌 Speed Limit</span>Limits you to 50 miles per turn until you play End Speed Limit.</div>
-            <div className="rule-card"><span>🛡️ Safeties</span>Permanent protection. Play them any time — even during someone's attack (Coup Fourré).</div>
-            <div className="rule-card"><span>🚨 One Hazard</span>Only one hazard per family at a time. Spread the misery.</div>
+            {lang === "en" ? (
+              <>
+                <div className="rule-card"><span>🟢 Go Card</span>You need a Go card before you can play any distance cards.</div>
+                <div className="rule-card"><span>🐌 Speed Limit</span>Limits you to 50 miles per turn until you play End Speed Limit.</div>
+                <div className="rule-card"><span>🛡️ Safeties</span>Permanent protection. Play them any time — even during someone's attack (Coup Fourré).</div>
+                <div className="rule-card"><span>🚨 One Hazard</span>Only one hazard per family at a time. Spread the misery.</div>
+              </>
+            ) : (
+              <>
+                <div className="rule-card"><span>🟢 การ์ด Go</span>ต้องมีการ์ด Go ก่อนจึงจะเล่นการ์ดระยะทางได้</div>
+                <div className="rule-card"><span>🐌 จำกัดความเร็ว</span>จำกัดให้วิ่งได้ 50 ไมล์ต่อเทิร์น จนกว่าจะเล่นยกเลิกความเร็ว</div>
+                <div className="rule-card"><span>🛡️ ความปลอดภัย</span>คุ้มครองถาวร เล่นได้ทุกเวลา แม้ตอนโดนโจมตี (Coup Fourré)</div>
+                <div className="rule-card"><span>🚨 อุปสรรคเดียว</span>แต่ละครอบครัวมีอุปสรรคได้ครั้งละหนึ่งอย่าง แจกให้ทั่ว!</div>
+              </>
+            )}
           </div>
-          <button className="btn-start" onClick={function(){ setShowSplash(false); }}>Hit the Road!</button>
+          <button className="btn-start" onClick={function(){ setShowSplash(false); }}>
+            {lang === "en" ? "Hit the Road!" : "ออกเดินทาง!"}
+          </button>
         </div>
       )}
 
